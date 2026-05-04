@@ -1,102 +1,210 @@
-# Exchange App
+# ExchangeApp
 
-一个基于 Go 和 Vue.js 的货币汇率应用，提供用户注册登录、汇率查询、新闻文章浏览和点赞功能。
+货币汇率查询与财经资讯平台，采用前后端分离架构，支持云原生部署。
 
-## 项目结构
+## 功能
 
-- `Exchangeapp_backend/` - Go 后端服务
-- `Exchangeapp_frontend/` - Vue.js 前端应用
-
-## 功能特性
-
-- 用户注册和登录
-- 货币汇率查询
-- 新闻文章浏览
-- 文章点赞功能
-- JWT 身份验证
+- 用户注册 / 登录（JWT 鉴权）
+- 多币种实时汇率查询与兑换计算
+- 财经文章浏览与点赞
+- 路由守卫与权限控制
 
 ## 技术栈
 
-### 后端
-- Go 1.24.4
-- Gin Web 框架
-- GORM ORM
-- MySQL 数据库
-- Redis 缓存
-- JWT 认证
-- Viper 配置管理
+| 层级 | 技术 |
+|------|------|
+| **前端** | Vue 3 + TypeScript + Vite + Element Plus + Pinia + Vue Router |
+| **后端** | Go 1.24 + Gin + GORM + go-redis v9 |
+| **数据库** | MySQL 8.0 + Redis 7 |
+| **可观测性** | OpenTelemetry → Jaeger / Prometheus + Grafana / Zap 结构化日志 |
+| **部署** | Docker + Kubernetes (Deployment / HPA / PDB / NetworkPolicy) |
+| **CI/CD** | GitHub Actions + ArgoCD GitOps |
 
-### 前端
-- Vue 3
-- TypeScript
-- Vite 构建工具
-- Element Plus UI 组件库
-- Vant UI 组件库
-- Pinia 状态管理
-- Vue Router 路由管理
-- Axios HTTP 客户端
+## 项目结构
 
-## 安装和运行
+```
+exchangeapp/
+├── Exchangeapp_backend/            # Go 后端
+│   ├── cmd/server/main.go          # 入口：依赖注入 + 优雅关闭
+│   ├── internal/
+│   │   ├── handler/                # HTTP 处理层（参数绑定 + 响应）
+│   │   ├── service/                # 业务逻辑层
+│   │   ├── repository/             # 数据访问层（interface + GORM 实现）
+│   │   ├── model/                  # 领域模型
+│   │   └── middleware/             # 认证 + 链路追踪 + 指标采集
+│   ├── pkg/
+│   │   ├── auth/                   # JWT 签发 / 验证
+│   │   ├── cache/                  # Cache interface + Redis 实现
+│   │   ├── config/                 # 环境变量优先 + config.yml fallback
+│   │   ├── database/               # GORM 连接管理
+│   │   ├── logger/                 # Zap 结构化日志（自动注入 TraceID）
+│   │   ├── metrics/                # Prometheus 指标（Counter / Histogram / Gauge）
+│   │   └── tracing/                # OpenTelemetry 初始化
+│   ├── migrations/                 # 数据库迁移脚本
+│   ├── deploy/k8s/                 # Kubernetes 生产清单
+│   ├── deploy/observability/       # Grafana Dashboard JSON
+│   ├── scripts/loadtest.js         # K6 阶梯式压测脚本
+│   ├── docs/                       # SRE 性能剖析报告
+│   ├── Dockerfile
+│   └── docker-compose.yml          # 后端本地开发环境
+│
+├── Exchangeapp_frontend/           # Vue 3 前端
+│   ├── src/
+│   │   ├── components/             # Login / Register 组件
+│   │   ├── views/                  # 首页 / 汇率 / 文章 / 文章详情
+│   │   ├── router/                 # 路由 + 鉴权守卫
+│   │   ├── store/                  # Pinia 状态管理
+│   │   ├── types/                  # TypeScript 类型定义
+│   │   ├── axios.ts                # HTTP 客户端（统一错误处理）
+│   │   └── main.ts                 # 应用入口
+│   ├── Dockerfile                  # 多阶段构建 → Nginx
+│   ├── nginx.conf                  # SPA 回退 + API 反向代理
+│   └── .env / .env.development     # 环境变量
+│
+├── docker-compose.yml              # 全栈一键启动
+└── .github/workflows/deploy.yml    # CI/CD 流水线
+```
 
-### 后端
+## 快速开始
 
-1. 进入后端目录：
-   ```bash
-   cd Exchangeapp_backend
-   ```
+### Docker Compose 一键启动（推荐）
 
-2. 下载依赖：
-   ```bash
-   go mod tidy
-   ```
+```bash
+git clone https://github.com/Motionists/exchangeApp.git
+cd exchangeApp
 
-3. 配置数据库：
-   - 确保 MySQL 运行在 127.0.0.1:3306
-   - 创建数据库 `bogger`
-   - 更新 `config/config.yml` 中的数据库连接信息
+# 启动全部服务（前端 + 后端 + MySQL + Redis）
+docker-compose up --build
 
-4. 运行后端服务：
-   ```bash
-   go run main.go
-   ```
+# 首次运行需要执行数据库迁移
+docker-compose exec backend ./server --migrate
+```
 
-   服务将在 http://localhost:3000 启动
+访问：
+- 前端：http://localhost
+- 后端 API：http://localhost:3000
+- 健康检查：http://localhost:3000/healthz
 
-### 前端
+### 本地开发
 
-1. 进入前端目录：
-   ```bash
-   cd Exchangeapp_frontend
-   ```
+**后端：**
 
-2. 安装依赖：
-   ```bash
-   npm install
-   ```
+```bash
+cd Exchangeapp_backend
 
-3. 启动开发服务器：
-   ```bash
-   npm run dev
-   ```
+# 设置环境变量
+export JWT_SECRET=dev-secret
+export DB_DSN="root:your_password@tcp(127.0.0.1:3306)/exchangeapp?charset=utf8mb4&parseTime=True&loc=Local"
+export REDIS_ADDR=localhost:6379
 
-   前端将在 http://localhost:5173 启动
+# 安装依赖 + 迁移 + 启动
+go mod tidy
+go run ./cmd/server/ --migrate   # 首次建表
+go run ./cmd/server/             # 启动服务（默认 :3000）
+```
 
-## 使用说明
+**前端：**
 
-1. 访问前端应用
-2. 注册新用户或登录
-3. 浏览汇率信息
-4. 查看新闻文章
-5. 对文章进行点赞
+```bash
+cd Exchangeapp_frontend
 
-## API 文档
+npm install
+npm run dev      # 开发服务器 http://localhost:5173
+npm run build    # 生产构建
+```
 
-后端 API 端点：
+前端开发模式下，Vite 会自动将 `/api` 请求代理到 `http://localhost:3000`。
 
-- `POST /auth/register` - 用户注册
-- `POST /auth/login` - 用户登录
-- `GET /exchange-rates` - 获取汇率
-- `GET /articles` - 获取文章列表
-- `POST /articles/:id/like` - 点赞文章
+## API 端点
 
+### 公开接口
 
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/api/auth/register` | 用户注册 |
+| `POST` | `/api/auth/login` | 用户登录 |
+| `GET` | `/api/exchangeRates` | 获取全部汇率 |
+| `GET` | `/healthz` | 健康检查 |
+| `GET` | `/metrics` | Prometheus 指标 |
+
+### 需要认证（Authorization: Bearer \<token\>）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/api/exchangeRates` | 创建汇率 |
+| `POST` | `/api/articles` | 创建文章 |
+| `GET` | `/api/articles` | 获取文章列表 |
+| `GET` | `/api/articles/:id` | 获取文章详情 |
+| `POST` | `/api/articles/:id/like` | 点赞文章 |
+| `GET` | `/api/articles/:id/like` | 获取点赞数 |
+
+## 架构设计
+
+### 后端分层
+
+```
+HTTP 请求 → Middleware(认证/追踪/指标) → Handler(参数绑定)
+  → Service(业务逻辑) → Repository(数据访问) → MySQL / Redis
+```
+
+- **Handler** 只做 HTTP 参数绑定和响应，不包含业务逻辑
+- **Service** 纯业务逻辑，通过 interface 依赖 Repository 和 Cache，可独立单元测试
+- **Repository** 定义 interface，替换数据库只需新写一个实现
+
+### 可观测性
+
+```
+                  ┌─ Jaeger (链路追踪)
+请求 → OTel SDK ──┤
+                  ├─ Prometheus (指标) → Grafana Dashboard
+                  │
+                  └─ Zap JSON 日志 (含 TraceID) → ELK / Loki
+```
+
+- **链路追踪**：OpenTelemetry 自动传播 SpanContext，跨 handler → service → repository 全链路
+- **指标**：请求总数 / 延迟分布 / 并发数 / P99（供 HPA 自定义伸缩）
+- **日志**：结构化 JSON 输出，自动关联 TraceID
+
+### Kubernetes 部署
+
+| 组件 | 说明 |
+|------|------|
+| Deployment | 3 副本，跨可用区 topologySpreadConstraints，非 root 运行 |
+| PDB | minAvailable: 2，确保滚动更新零宕机 |
+| HPA v2 | CPU 70% + Memory 80% + P99 延迟三维伸缩，3-20 副本 |
+| NetworkPolicy | Ingress 仅放行 nginx + prometheus，Egress 仅放行 DB/Redis/OTel |
+| ArgoCD | 自动同步 + selfHeal + prune |
+
+```bash
+# 部署到 K8s
+kubectl apply -f Exchangeapp_backend/deploy/k8s/base/
+```
+
+### CI/CD 流水线
+
+```
+push to main → GitHub Actions:
+  1. golangci-lint + go test -race
+  2. Docker multi-arch build → GHCR (tag: sha-abc1234)
+  3. 更新 gitops 仓库 → ArgoCD 自动同步到集群
+```
+
+## 环境变量
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `JWT_SECRET` | JWT 签名密钥（**必填**） | — |
+| `DB_DSN` | MySQL 连接串（**必填**） | — |
+| `REDIS_ADDR` | Redis 地址 | `localhost:6379` |
+| `APP_PORT` | 服务监听端口 | `:3000` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTel Collector 地址 | — |
+
+前端环境变量（`.env` 文件）：
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `VITE_API_BASE_URL` | API 基础路径 | `/api` |
+
+## 许可证
+
+MIT
