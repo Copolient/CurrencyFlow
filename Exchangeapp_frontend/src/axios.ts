@@ -24,13 +24,14 @@ instance.interceptors.response.use(
 
     if (status === 401) {
       localStorage.removeItem('token');
-      // 避免在登录页循环跳转
       if (window.location.pathname !== '/login') {
         ElMessage.error('登录已过期，请重新登录');
         window.location.href = '/login';
       }
     } else if (status === 403) {
       ElMessage.error('没有权限执行此操作');
+    } else if (status === 429) {
+      ElMessage.warning('请求过于频繁，请稍后重试');
     } else if (status === 500) {
       ElMessage.error('服务器内部错误，请稍后重试');
     } else if (!error.response) {

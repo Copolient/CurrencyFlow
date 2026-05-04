@@ -1,27 +1,32 @@
 <template>
   <el-container class="app-container">
-    <el-header class="app-header">
-      <el-menu
-        :default-active="activeIndex"
-        mode="horizontal"
-        :ellipsis="false"
-        @select="handleSelect"
-        class="nav-menu"
-      >
-        <el-menu-item index="home" class="logo-item">蓝鼠兑换</el-menu-item>
-        <div class="flex-grow" />
-        <el-menu-item index="exchange">兑换货币</el-menu-item>
-        <el-menu-item index="news">查看资讯</el-menu-item>
-        <el-menu-item index="login" v-if="!authStore.isAuthenticated">登录</el-menu-item>
-        <el-menu-item index="register" v-if="!authStore.isAuthenticated">注册</el-menu-item>
-        <el-sub-menu index="user" v-if="authStore.isAuthenticated">
-          <template #title>用户</template>
-          <el-menu-item index="logout">退出登录</el-menu-item>
-        </el-sub-menu>
-      </el-menu>
+    <el-header class="app-header" role="banner">
+      <nav aria-label="主导航">
+        <el-menu
+          :default-active="activeIndex"
+          mode="horizontal"
+          :ellipsis="false"
+          @select="handleSelect"
+          class="nav-menu"
+          role="menubar"
+        >
+          <el-menu-item index="home" class="logo-item" aria-label="首页">蓝鼠兑换</el-menu-item>
+          <div class="flex-grow" />
+          <el-menu-item index="exchange" role="menuitem">兑换货币</el-menu-item>
+          <el-menu-item index="news" role="menuitem">查看资讯</el-menu-item>
+          <el-menu-item index="login" v-if="!authStore.isAuthenticated" role="menuitem">登录</el-menu-item>
+          <el-menu-item index="register" v-if="!authStore.isAuthenticated" role="menuitem">注册</el-menu-item>
+          <el-sub-menu index="user" v-if="authStore.isAuthenticated">
+            <template #title>用户</template>
+            <el-menu-item index="logout" role="menuitem">退出登录</el-menu-item>
+          </el-sub-menu>
+        </el-menu>
+      </nav>
     </el-header>
-    <el-main class="app-main">
-      <router-view />
+    <el-main class="app-main" role="main">
+      <ErrorBoundary>
+        <router-view />
+      </ErrorBoundary>
     </el-main>
   </el-container>
 </template>
@@ -30,6 +35,7 @@
 import { ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from './store/auth';
+import ErrorBoundary from './components/ErrorBoundary.vue';
 
 const router = useRouter();
 const route = useRoute();

@@ -23,10 +23,11 @@ type Handlers struct {
 func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 
-	// Observability: tracing + metrics + structured logging
+	// Global middleware
 	r.Use(middleware.Tracing())
 	r.Use(middleware.MetricsAndLogging())
-
+	r.Use(middleware.SecurityHeaders())
+	r.Use(middleware.RateLimit(100)) // 100 req/s per IP
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
@@ -36,10 +37,9 @@ func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB) *gin.Engine {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Health check
+	// Health & Metrics (no versioning)
 	r.GET("/healthz", func(c *gin.Context) {
 		status := gin.H{"status": "ok"}
-
 		sqlDB, err := db.DB()
 		if err != nil || sqlDB.Ping() != nil {
 			status["database"] = "unhealthy"
@@ -47,32 +47,39 @@ func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB) *gin.Engine {
 			return
 		}
 		status["database"] = "ok"
-
 		c.JSON(http.StatusOK, status)
 	})
-
-	// Prometheus metrics endpoint
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	// Auth routes (public)
-	auth := r.Group("/api/auth")
+	// API v1
+	v1 := r.Group("/api/v1")
+
+	// Public auth routes
+	authGroup := v1.Group("/auth")
 	{
-		auth.POST("/login", h.Auth.Login)
-		auth.POST("/register", h.Auth.Register)
+		authGroup.POST("/login", h.Auth.Login)
+		authGroup.POST("/register", h.Auth.Register)
 	}
 
-	// API routes
-	api := r.Group("/api")
-	api.GET("/exchangeRates", h.Exchange.GetAll)
-	api.Use(middleware.AuthMiddleware(jwt))
+	// Public read routes
+	v1.GET("/exchangeRates", h.Exchange.GetAll)
+
+	// Protected routes
+	protected := v1.Group("")
+	protected.Use(middleware.AuthMiddleware(jwt))
 	{
-		api.POST("/exchangeRates", h.Exchange.Create)
-		api.POST("/articles", h.Article.Create)
-		api.GET("/articles", h.Article.GetAll)
-		api.GET("/articles/:id", h.Article.GetByID)
-		api.POST("/articles/:id/like", h.Like.Like)
-		api.GET("/articles/:id/like", h.Like.GetLikes)
+		protected.POST("/exchangeRates", h.Exchange.Create)
+		protected.POST("/articles", h.Article.Create)
+		protected.GET("/articles", h.Article.GetAll)
+		protected.GET("/articles/:id", h.Article.GetByID)
+		protected.POST("/articles/:id/like", h.Like.Like)
+		protected.GET("/articles/:id/like", h.Like.GetLikes)
 	}
+
+	// Backward-compatible redirects from /api/* to /api/v1/*
+	r.POST("/api/auth/login", h.Auth.Login)
+	r.POST("/api/auth/register", h.Auth.Register)
+	r.GET("/api/exchangeRates", h.Exchange.GetAll)
 
 	return r
 }

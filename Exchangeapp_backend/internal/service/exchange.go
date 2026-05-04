@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"exchangeapp/internal/model"
 	"exchangeapp/internal/repository"
 	"time"
@@ -16,9 +17,16 @@ func NewExchangeRateService(repo repository.ExchangeRateRepository) *ExchangeRat
 
 func (s *ExchangeRateService) CreateExchangeRate(rate *model.ExchangeRate) error {
 	rate.Date = time.Now()
-	return s.repo.Create(rate)
+	if err := s.repo.Create(rate); err != nil {
+		return fmt.Errorf("exchangeRepo.Create: %w", err)
+	}
+	return nil
 }
 
 func (s *ExchangeRateService) GetExchangeRates() ([]model.ExchangeRate, error) {
-	return s.repo.FindAll()
+	rates, err := s.repo.FindAll()
+	if err != nil {
+		return nil, fmt.Errorf("exchangeRepo.FindAll: %w", err)
+	}
+	return rates, nil
 }

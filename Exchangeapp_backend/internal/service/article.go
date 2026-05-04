@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"exchangeapp/internal/model"
 	"exchangeapp/internal/repository"
 	"exchangeapp/pkg/cache"
@@ -25,15 +26,13 @@ func NewArticleService(articleRepo repository.ArticleRepository, cache cache.Cac
 
 func (s *ArticleService) CreateArticle(ctx context.Context, article *model.Article) error {
 	if err := s.articleRepo.Create(article); err != nil {
-		return err
+		return fmt.Errorf("articleRepo.Create: %w", err)
 	}
-	// Invalidate cache
 	_ = s.cache.Del(ctx, articleCacheKey)
 	return nil
 }
 
 func (s *ArticleService) GetArticles(ctx context.Context) ([]model.Article, error) {
-	// Try cache first
 	cached, err := s.cache.Get(ctx, articleCacheKey)
 	if err == nil {
 		var articles []model.Article
@@ -42,13 +41,11 @@ func (s *ArticleService) GetArticles(ctx context.Context) ([]model.Article, erro
 		}
 	}
 
-	// Cache miss, query DB
 	articles, err := s.articleRepo.FindAll()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("articleRepo.FindAll: %w", err)
 	}
 
-	// Write to cache
 	if data, err := json.Marshal(articles); err == nil {
 		_ = s.cache.Set(ctx, articleCacheKey, string(data), 10*time.Minute)
 	}
@@ -62,7 +59,7 @@ func (s *ArticleService) GetArticleByID(ctx context.Context, id string) (*model.
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("articleRepo.FindByID(%s): %w", id, err)
 	}
 	return article, nil
 }

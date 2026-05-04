@@ -16,8 +16,10 @@ func NewLikeService(cache cache.Cache) *LikeService {
 
 func (s *LikeService) LikeArticle(ctx context.Context, articleID string) error {
 	key := fmt.Sprintf("article:%s:likes", articleID)
-	_, err := s.cache.Incr(ctx, key)
-	return err
+	if _, err := s.cache.Incr(ctx, key); err != nil {
+		return fmt.Errorf("cache.Incr(%s): %w", key, err)
+	}
+	return nil
 }
 
 func (s *LikeService) GetArticleLikes(ctx context.Context, articleID string) (string, error) {
