@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: exchangeapp-config
+  namespace: exchangeapp
+  labels:
+    app.kubernetes.io/name: exchangeapp
+data:
+  redis-addr: "redis.cache.svc.cluster.local:6379"

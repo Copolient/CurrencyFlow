@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gorm.io/gorm"
 )
 
@@ -21,6 +22,10 @@ type Handlers struct {
 
 func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB) *gin.Engine {
 	r := gin.Default()
+
+	// Observability: tracing + metrics + structured logging
+	r.Use(middleware.Tracing())
+	r.Use(middleware.MetricsAndLogging())
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
@@ -45,6 +50,9 @@ func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB) *gin.Engine {
 
 		c.JSON(http.StatusOK, status)
 	})
+
+	// Prometheus metrics endpoint
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Auth routes (public)
 	auth := r.Group("/api/auth")

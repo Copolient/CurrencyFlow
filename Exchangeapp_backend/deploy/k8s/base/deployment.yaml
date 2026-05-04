@@ -1,0 +1,173 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exchangeapp
+  namespace: exchangeapp
+  labels:
+    app.kubernetes.io/name: exchangeapp
+    app.kubernetes.io/component: api
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0        # 零宕机：滚动更新时不允许任何 Pod 不可用
+      maxSurge: 1              # 最多多创建 1 个 Pod
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exchangeapp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exchangeapp
+        app.kubernetes.io/component: api
+        version: canary         # 用于金丝雀发布的标签
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: exchangeapp
+      terminationGracePeriodSeconds: 60   # 给 Go 程序 60 秒完成优雅关闭
+
+      # ============================================================
+      # 安全加固：非 root 运行 + 只读根文件系统
+      # ============================================================
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534           # nobody
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+
+      # ============================================================
+      # 拓扑感知调度：跨可用区打散
+      # ============================================================
+      topologySpreadConstraints:
+        - maxSkew: 1                              # 每个 zone 的 Pod 数最多差 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule         # 硬约束：不可聚集到同一 AZ
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: exchangeapp
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway        # 软约束：尽量跨节点
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: exchangeapp
+
+      # ============================================================
+      # 亲和性 / 反亲和性
+      # ============================================================
+      affinity:
+        # 反亲和：同一节点不部署超过 1 个副本（硬约束）
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - exchangeapp
+              topologyKey: kubernetes.io/hostname
+        # 亲和：优先调度到通用节点池（软约束）
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 80
+              preference:
+                matchExpressions:
+                  - key: node-pool
+                    operator: In
+                    values:
+                      - general-purpose
+
+      containers:
+        - name: exchangeapp
+          image: ghcr.io/motionists/exchangeapp:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          # ============================================================
+          # 容器级安全上下文
+          # ============================================================
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          # ============================================================
+          # 资源限制（基于压测数据调优）
+          # ============================================================
+          resources:
+            requests:
+              cpu: 250m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+
+          # ============================================================
+          # 启动 / 就绪 / 存活探针
+          # ============================================================
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 30      # 最多等 30*2=60 秒启动
+            periodSeconds: 2
+
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: exchangeapp-secrets
+                  key: jwt-secret
+            - name: DB_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: exchangeapp-secrets
+                  key: db-dsn
+            - name: REDIS_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: exchangeapp-config
+                  key: redis-addr
+            - name: APP_PORT
+              value: ":3000"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "exchangeapp"
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi

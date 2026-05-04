@@ -1,0 +1,79 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: exchangeapp-default
+  namespace: exchangeapp
+  labels:
+    app.kubernetes.io/name: exchangeapp
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: exchangeapp
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # 仅允许来自 Ingress Controller 的 HTTP 流量
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+
+    # 允许 Prometheus 抓取 metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 3000
+
+  egress:
+    # 允许 DNS 查询
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # 允许访问 MySQL（假设在同 namespace 或指定 namespace）
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: database
+      ports:
+        - protocol: TCP
+          port: 3306
+
+    # 允许访问 Redis
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cache
+      ports:
+        - protocol: TCP
+          port: 6379
+
+    # 允许访问 OTel Collector
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 4317

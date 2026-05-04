@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: exchangeapp
+  labels:
+    app.kubernetes.io/name: exchangeapp
+    istio-injection: enabled

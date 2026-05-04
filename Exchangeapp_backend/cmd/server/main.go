@@ -10,6 +10,8 @@ import (
 	"exchangeapp/pkg/cache"
 	"exchangeapp/pkg/config"
 	"exchangeapp/pkg/database"
+	"exchangeapp/pkg/logger"
+	"exchangeapp/pkg/tracing"
 	"exchangeapp/router"
 	"flag"
 	"log"
@@ -26,6 +28,22 @@ func main() {
 
 	// Load config
 	cfg := config.Load()
+
+	// Initialize structured logging
+	logger.Init()
+	defer logger.Sync()
+
+	// Initialize OpenTelemetry tracing
+	otelShutdown, err := tracing.Init("exchangeapp", os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+	if err != nil {
+		log.Printf("Warning: failed to init tracing: %v", err)
+	} else {
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = otelShutdown(ctx)
+		}()
+	}
 
 	// Initialize infrastructure
 	db := database.NewMySQL(cfg.Database)
@@ -62,8 +80,11 @@ func main() {
 
 	// Start server with graceful shutdown
 	srv := &http.Server{
-		Addr:    cfg.App.Port,
-		Handler: r,
+		Addr:         cfg.App.Port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	go func() {
@@ -80,7 +101,7 @@ func main() {
 
 	log.Println("Shutting down server...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {

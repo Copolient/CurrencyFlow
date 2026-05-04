@@ -1,0 +1,109 @@
+{
+  "dashboard": {
+    "title": "ExchangeApp Production Dashboard",
+    "uid": "exchangeapp-prod",
+    "timezone": "browser",
+    "refresh": "10s",
+    "panels": [
+      {
+        "title": "Request Rate (QPS)",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "sum(rate(exchangeapp_http_requests_total[5m])) by (method)",
+            "legendFormat": "{{method}}"
+          }
+        ]
+      },
+      {
+        "title": "Request Latency P50/P90/P99",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(exchangeapp_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.90, sum(rate(exchangeapp_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P90"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(exchangeapp_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P99"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate (%)",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(exchangeapp_http_requests_total{status=~\"5..\"}[5m])) / sum(rate(exchangeapp_http_requests_total[5m])) * 100"
+          }
+        ],
+        "thresholds": {
+          "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "yellow", "value": 0.5 },
+            { "color": "red", "value": 1 }
+          ]
+        }
+      },
+      {
+        "title": "Inflight Requests",
+        "type": "gauge",
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+        "targets": [
+          {
+            "expr": "exchangeapp_http_inflight_requests"
+          }
+        ]
+      },
+      {
+        "title": "Requests by Path",
+        "type": "piechart",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+        "targets": [
+          {
+            "expr": "sum(increase(exchangeapp_http_requests_total[1h])) by (path)",
+            "legendFormat": "{{path}}"
+          }
+        ]
+      },
+      {
+        "title": "HTTP Status Distribution",
+        "type": "barchart",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+        "targets": [
+          {
+            "expr": "sum(increase(exchangeapp_http_requests_total[5m])) by (status)",
+            "legendFormat": "HTTP {{status}}"
+          }
+        ]
+      },
+      {
+        "title": "Request Duration Heatmap",
+        "type": "heatmap",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+        "targets": [
+          {
+            "expr": "sum(rate(exchangeapp_http_request_duration_seconds_bucket[5m])) by (le)",
+            "legendFormat": "{{le}}"
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "query": "label_values(exchangeapp_http_requests_total, namespace)"
+        }
+      ]
+    }
+  }
+}

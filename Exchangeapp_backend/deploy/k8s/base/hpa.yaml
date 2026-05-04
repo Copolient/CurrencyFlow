@@ -1,0 +1,52 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: exchangeapp
+  namespace: exchangeapp
+  labels:
+    app.kubernetes.io/name: exchangeapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: exchangeapp
+  minReplicas: 3
+  maxReplicas: 20
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60      # 扩容冷却 60s
+      policies:
+        - type: Pods
+          value: 4                         # 每次最多扩 4 个 Pod
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300     # 缩容冷却 5min，防止抖动
+      policies:
+        - type: Percent
+          value: 25                        # 每次最多缩 25%
+          periodSeconds: 120
+  metrics:
+    # 维度 1：CPU 使用率
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70           # CPU 平均 70% 触发扩容
+
+    # 维度 2：内存使用率
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+    # 维度 3：自定义业务指标 — P99 延迟（来自 Prometheus）
+    - type: Pods
+      pods:
+        metric:
+          name: http_request_duration_seconds_p99
+        target:
+          type: AverageValue
+          averageValue: "500m"             # P99 > 500ms 触发扩容（单位：秒的毫分数）

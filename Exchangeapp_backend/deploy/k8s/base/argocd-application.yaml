@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: exchangeapp
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: exchangeapp
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Motionists/exchangeapp-gitops.git
+    targetRevision: main
+    path: environments/production
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: exchangeapp
+
+  syncPolicy:
+    automated:
+      prune: true                # 自动删除 Git 中不存在的资源
+      selfHeal: true             # 自动修复手动修改
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true           # 最后执行清理，避免服务中断
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # 健康检查配置
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas    # HPA 管理的副本数不触发差异告警

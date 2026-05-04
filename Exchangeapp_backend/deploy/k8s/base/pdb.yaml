@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: exchangeapp
+  namespace: exchangeapp
+  labels:
+    app.kubernetes.io/name: exchangeapp
+spec:
+  minAvailable: 2                      # 至少保持 2 个 Pod 可用（3 副本场景）
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exchangeapp
