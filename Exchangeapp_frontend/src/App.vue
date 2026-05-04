@@ -1,17 +1,27 @@
 <template>
-  <el-container>
-    <el-header>
-      <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal"  :ellipsis="true" @select="handleSelect">
-        <el-menu-item index="home">首页</el-menu-item>
-        <el-menu-item index="currencyExchange">兑换货币</el-menu-item>
-        <el-menu-item index="news">查看新闻</el-menu-item>
+  <el-container class="app-container">
+    <el-header class="app-header">
+      <el-menu
+        :default-active="activeIndex"
+        mode="horizontal"
+        :ellipsis="false"
+        @select="handleSelect"
+        class="nav-menu"
+      >
+        <el-menu-item index="home" class="logo-item">蓝鼠兑换</el-menu-item>
+        <div class="flex-grow" />
+        <el-menu-item index="exchange">兑换货币</el-menu-item>
+        <el-menu-item index="news">查看资讯</el-menu-item>
         <el-menu-item index="login" v-if="!authStore.isAuthenticated">登录</el-menu-item>
         <el-menu-item index="register" v-if="!authStore.isAuthenticated">注册</el-menu-item>
-        <el-menu-item index="logout" v-if="authStore.isAuthenticated">退出</el-menu-item>
+        <el-sub-menu index="user" v-if="authStore.isAuthenticated">
+          <template #title>用户</template>
+          <el-menu-item index="logout">退出登录</el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-header>
-    <el-main>
-      <router-view></router-view>
+    <el-main class="app-main">
+      <router-view />
     </el-main>
   </el-container>
 </template>
@@ -24,24 +34,73 @@ import { useAuthStore } from './store/auth';
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
-const activeIndex = ref(route.name?.toString() || 'home');
+
+const routeNameToIndex: Record<string, string> = {
+  Home: 'home',
+  CurrencyExchange: 'exchange',
+  News: 'news',
+  NewsDetail: 'news',
+  Login: 'login',
+  Register: 'register',
+};
+
+const activeIndex = ref(routeNameToIndex[route.name as string] || 'home');
 
 watch(route, (newRoute) => {
-  activeIndex.value = newRoute.name?.toString() || 'home';
+  activeIndex.value = routeNameToIndex[newRoute.name as string] || 'home';
 });
 
 const handleSelect = (key: string) => {
-  if ( key === 'logout') {
+  if (key === 'logout') {
     authStore.logout();
     router.push({ name: 'Home' });
-  } else {
-    router.push({ name:  key.charAt(0).toUpperCase() +  key.slice(1) });
+    return;
+  }
+
+  const indexToRoute: Record<string, string> = {
+    home: 'Home',
+    exchange: 'CurrencyExchange',
+    news: 'News',
+    login: 'Login',
+    register: 'Register',
+  };
+
+  const routeName = indexToRoute[key];
+  if (routeName) {
+    router.push({ name: routeName });
   }
 };
 </script>
 
 <style scoped>
-.el-menu-demo {
-  line-height: 60px;
+.app-container {
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+.app-header {
+  padding: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  background: #fff;
+}
+
+.nav-menu {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.logo-item {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.flex-grow {
+  flex-grow: 1;
+}
+
+.app-main {
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
 }
 </style>
