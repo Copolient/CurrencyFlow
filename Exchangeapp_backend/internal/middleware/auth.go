@@ -1,24 +1,26 @@
 package middleware
 
 import (
-	"exchangeapp/utils"
+	"exchangeapp/pkg/auth"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleWare() gin.HandlerFunc {
+func AuthMiddleware(jwt *auth.JWTManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		auth := c.GetHeader("Authorization")
-		if auth == "" {
+		token := c.GetHeader("Authorization")
+		if token == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing Authorization header"})
 			return
 		}
-		username, err := utils.ParseJWT(auth)
+
+		username, err := jwt.ParseToken(token)
 		if err != nil || username == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
+
 		c.Set("username", username)
 		c.Next()
 	}

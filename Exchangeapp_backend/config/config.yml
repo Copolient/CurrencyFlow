@@ -1,8 +1,13 @@
 app:
   name: CurrencyExchangeApp
-  port: :3000
+  port: ":3000"
 
 database:
-  dsn: "root:02020202@tcp(127.0.0.1:3306)/bogger?charset=utf8mb4&parseTime=True&loc=Local"
-  MaxIdleConns: 11
-  MaxOpenConns: 114
+  dsn: "root:YOUR_PASSWORD@tcp(127.0.0.1:3306)/bogger?charset=utf8mb4&parseTime=True&loc=Local"
+  maxidleconns: 11
+  maxopenconns: 114
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
