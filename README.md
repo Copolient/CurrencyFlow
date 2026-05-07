@@ -249,6 +249,3 @@ push to main → GitHub Actions:
 |------|------|--------|
 | `VITE_API_BASE_URL` | API 基础路径 | `/api` |
 
-## 许可证
-
-MIT
