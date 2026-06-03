@@ -28,4 +28,9 @@ describe('Router Guards', () => {
     await router.push('/nonexistent');
     expect(router.currentRoute.value.name).toBe('Home');
   });
+
+  it('allows unauthenticated users to access /chart', async () => {
+    await router.push('/chart');
+    expect(router.currentRoute.value.name).toBe('Chart');
+  });
 });

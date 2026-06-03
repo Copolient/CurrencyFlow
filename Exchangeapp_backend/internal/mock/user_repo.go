@@ -38,6 +38,30 @@ func (r *UserRepo) FindByUsername(username string) (*model.User, error) {
 	return u, nil
 }
 
+func (r *UserRepo) FindByID(id uint) (*model.User, error) {
+	if r.Err != nil {
+		return nil, r.Err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, u := range r.users {
+		if u.ID == id {
+			return u, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func (r *UserRepo) Update(user *model.User) error {
+	if r.Err != nil {
+		return r.Err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.users[user.Username] = user
+	return nil
+}
+
 var ErrNotFound = &notFoundError{}
 
 type notFoundError struct{}

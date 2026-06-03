@@ -14,6 +14,12 @@ func Run(db *gorm.DB) {
 		&model.User{},
 		&model.Article{},
 		&model.ExchangeRate{},
+		&model.ExchangeRateHistory{},
+		&model.Favorite{},
+		&model.RateAlert{},
+		&model.Notification{},
+		&model.Post{},
+		&model.Follow{},
 	); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}

@@ -1,13 +1,14 @@
 package middleware
 
 import (
+	"exchangeapp/internal/repository"
 	"exchangeapp/pkg/auth"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware(jwt *auth.JWTManager) gin.HandlerFunc {
+func AuthMiddleware(jwt *auth.JWTManager, userRepo repository.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
 		if token == "" {
@@ -22,6 +23,13 @@ func AuthMiddleware(jwt *auth.JWTManager) gin.HandlerFunc {
 		}
 
 		c.Set("username", username)
+
+		// Look up user ID
+		user, err := userRepo.FindByUsername(username)
+		if err == nil && user != nil {
+			c.Set("userID", user.ID)
+		}
+
 		c.Next()
 	}
 }

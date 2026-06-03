@@ -3,6 +3,7 @@ package router
 import (
 	"exchangeapp/internal/handler"
 	"exchangeapp/internal/middleware"
+	"exchangeapp/internal/repository"
 	"exchangeapp/pkg/auth"
 	"net/http"
 	"time"
@@ -14,13 +15,22 @@ import (
 )
 
 type Handlers struct {
-	Auth     *handler.AuthHandler
-	Article  *handler.ArticleHandler
-	Exchange *handler.ExchangeHandler
-	Like     *handler.LikeHandler
+	Auth         *handler.AuthHandler
+	Article      *handler.ArticleHandler
+	Exchange     *handler.ExchangeHandler
+	Like         *handler.LikeHandler
+	RateHistory  *handler.RateHistoryHandler
+	WS           *handler.WSHandler
+	Favorite     *handler.FavoriteHandler
+	Alert        *handler.AlertHandler
+	Notification *handler.NotificationHandler
+	Post         *handler.PostHandler
+	Follow       *handler.FollowHandler
+	UserProfile  *handler.UserProfileHandler
+	AIAnalyst    *handler.AIAnalystHandler
 }
 
-func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB) *gin.Engine {
+func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB, userRepo repository.UserRepository) *gin.Engine {
 	r := gin.Default()
 
 	// Global middleware
@@ -30,7 +40,7 @@ func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB) *gin.Engine {
 	r.Use(middleware.RateLimit(100)) // 100 req/s per IP
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
@@ -63,10 +73,23 @@ func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB) *gin.Engine {
 
 	// Public read routes
 	v1.GET("/exchangeRates", h.Exchange.GetAll)
+	v1.GET("/rates/history", h.RateHistory.GetHistory)
+	v1.GET("/rates/latest", h.RateHistory.GetLatest)
+
+	// AI Analyst
+	v1.POST("/ai/analyze", h.AIAnalyst.Analyze)
+
+	// Public social routes
+	v1.GET("/posts", h.Post.GetAll)
+	v1.GET("/users/:id", h.UserProfile.GetProfile)
+
+	// WebSocket
+	v1.GET("/ws", h.WS.HandleWebSocket)
+	v1.GET("/ws/clients", h.WS.GetClientCount)
 
 	// Protected routes
 	protected := v1.Group("")
-	protected.Use(middleware.AuthMiddleware(jwt))
+	protected.Use(middleware.AuthMiddleware(jwt, userRepo))
 	{
 		protected.POST("/exchangeRates", h.Exchange.Create)
 		protected.POST("/articles", h.Article.Create)
@@ -74,6 +97,31 @@ func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB) *gin.Engine {
 		protected.GET("/articles/:id", h.Article.GetByID)
 		protected.POST("/articles/:id/like", h.Like.Like)
 		protected.GET("/articles/:id/like", h.Like.GetLikes)
+
+		// Favorites
+		protected.POST("/favorites", h.Favorite.Add)
+		protected.GET("/favorites", h.Favorite.GetByUser)
+		protected.DELETE("/favorites", h.Favorite.Remove)
+		protected.GET("/favorites/check", h.Favorite.Check)
+
+		// Alerts
+		protected.POST("/alerts", h.Alert.Create)
+		protected.GET("/alerts", h.Alert.GetByUser)
+		protected.DELETE("/alerts/:id", h.Alert.Delete)
+
+		// Notifications
+		protected.GET("/notifications", h.Notification.GetAll)
+		protected.PUT("/notifications/:id/read", h.Notification.MarkRead)
+		protected.PUT("/notifications/read-all", h.Notification.MarkAllRead)
+		protected.GET("/notifications/unread-count", h.Notification.CountUnread)
+
+		// Social
+		protected.POST("/posts", h.Post.Create)
+		protected.POST("/posts/:id/like", h.Post.Like)
+		protected.POST("/users/:id/follow", h.Follow.Follow)
+		protected.DELETE("/users/:id/follow", h.Follow.Unfollow)
+		protected.GET("/users/:id/following", h.Follow.IsFollowing)
+		protected.PUT("/users/profile", h.UserProfile.UpdateProfile)
 	}
 
 	// Backward-compatible redirects from /api/* to /api/v1/*

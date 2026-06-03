@@ -9,6 +9,8 @@ import (
 type UserRepository interface {
 	Create(user *model.User) error
 	FindByUsername(username string) (*model.User, error)
+	FindByID(id uint) (*model.User, error)
+	Update(user *model.User) error
 }
 
 type userRepo struct {
@@ -30,4 +32,17 @@ func (r *userRepo) FindByUsername(username string) (*model.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *userRepo) FindByID(id uint) (*model.User, error) {
+	var user model.User
+	err := r.db.First(&user, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *userRepo) Update(user *model.User) error {
+	return r.db.Save(user).Error
 }
