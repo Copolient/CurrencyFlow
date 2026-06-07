@@ -55,8 +55,12 @@ func (h *PostHandler) GetAll(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID") // optional for following feed
+	var uid uint
+	if userID != nil {
+		uid = userID.(uint)
+	}
 
-	posts, err := h.postSvc.GetPosts(feedType, userID.(uint), page, pageSize)
+	posts, err := h.postSvc.GetPosts(feedType, uid, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

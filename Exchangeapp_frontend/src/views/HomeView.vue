@@ -67,7 +67,7 @@
     <template v-else>
       <div class="hero">
         <h1 class="title">蓝鼠兑换</h1>
-        <p class="subtitle">实时汇率查询 · 财经资讯 · 一站掌握</p>
+        <p class="subtitle">实时汇率查询 · AI 智能分析 · 社交交易社区</p>
         <div class="actions">
           <el-button type="primary" size="large" @click="router.push('/exchange')">
             开始兑换
@@ -78,38 +78,58 @@
         </div>
       </div>
 
-      <div class="features">
-        <el-row :gutter="24">
-          <el-col :span="6">
-            <el-card shadow="hover" class="feature-card">
-              <div class="feature-icon">💱</div>
-              <h3>实时汇率</h3>
-              <p>支持多币种实时查询与兑换计算</p>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover" class="feature-card">
-              <div class="feature-icon">📈</div>
-              <h3>行情走势</h3>
-              <p>交互式图表，支持多时间范围</p>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover" class="feature-card">
-              <div class="feature-icon">📰</div>
-              <h3>财经资讯</h3>
-              <p>精选财经文章，洞察市场动态</p>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="hover" class="feature-card">
-              <div class="feature-icon">🔒</div>
-              <h3>安全可靠</h3>
-              <p>JWT 鉴权 + HTTPS，数据安全有保障</p>
+      <!-- 实时汇率 -->
+      <el-card class="guest-section" v-loading="ratesLoading">
+        <template #header>
+          <div class="section-header">
+            <span>💱 实时汇率</span>
+            <el-button text type="primary" @click="router.push('/chart')">查看详情 →</el-button>
+          </div>
+        </template>
+        <el-row :gutter="16">
+          <el-col :span="6" v-for="rate in latestRates" :key="`${rate.fromCurrency}-${rate.toCurrency}`">
+            <el-card shadow="hover" class="rate-card" @click="router.push('/chart')">
+              <div class="rate-pair">{{ rate.fromCurrency }}/{{ rate.toCurrency }}</div>
+              <div class="rate-value">{{ rate.rate.toFixed(4) }}</div>
             </el-card>
           </el-col>
         </el-row>
-      </div>
+      </el-card>
+
+      <!-- AI 分析师 -->
+      <el-card class="guest-section">
+        <template #header>
+          <div class="section-header">
+            <span>🤖 AI 智能分析师</span>
+            <el-button text type="primary" @click="router.push('/ai')">去分析 →</el-button>
+          </div>
+        </template>
+        <div class="ai-preview">
+          <p>基于历史数据的智能汇率分析，支持趋势判断、关键价位、风险提示。</p>
+          <el-button type="primary" @click="router.push('/ai')">体验 AI 分析</el-button>
+        </div>
+      </el-card>
+
+      <!-- 社区帖子 -->
+      <el-card class="guest-section" v-loading="postsLoading">
+        <template #header>
+          <div class="section-header">
+            <span>👥 交易社区</span>
+            <el-button text type="primary" @click="router.push('/community')">进入社区 →</el-button>
+          </div>
+        </template>
+        <div v-if="recentPosts.length === 0" class="empty-state">
+          <el-empty description="暂无帖子" :image-size="60" />
+        </div>
+        <div v-for="post in recentPosts" :key="post.ID" class="post-preview">
+          <div class="post-header">
+            <span class="post-username">{{ post.username }}</span>
+            <el-tag v-if="post.currency" size="small">{{ post.currency }}</el-tag>
+          </div>
+          <div class="post-content">{{ post.content }}</div>
+          <div class="post-footer">❤️ {{ post.likes }}</div>
+        </div>
+      </el-card>
     </template>
   </div>
 </template>
@@ -123,6 +143,8 @@ import axios from '../axios';
 const router = useRouter();
 const authStore = useAuthStore();
 const loading = ref(false);
+const ratesLoading = ref(false);
+const postsLoading = ref(false);
 
 interface RateHistory {
   _id: number;
@@ -132,7 +154,19 @@ interface RateHistory {
   timestamp: string;
 }
 
+interface Post {
+  ID: number;
+  userId: number;
+  username: string;
+  content: string;
+  currency: string;
+  likes: number;
+  CreatedAt: string;
+}
+
 const favoriteRates = ref<RateHistory[]>([]);
+const latestRates = ref<RateHistory[]>([]);
+const recentPosts = ref<Post[]>([]);
 
 const username = computed(() => {
   const token = localStorage.getItem('token');
@@ -189,6 +223,30 @@ const formatTime = (timestamp: string) => {
   return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
+const fetchLatestRates = async () => {
+  ratesLoading.value = true;
+  try {
+    const resp = await axios.get<RateHistory[]>('/rates/latest');
+    latestRates.value = resp.data.slice(0, 8);
+  } catch {
+    // interceptor handles error
+  } finally {
+    ratesLoading.value = false;
+  }
+};
+
+const fetchRecentPosts = async () => {
+  postsLoading.value = true;
+  try {
+    const resp = await axios.get<Post[]>('/posts', { params: { pageSize: 5 } });
+    recentPosts.value = resp.data;
+  } catch {
+    // interceptor handles error
+  } finally {
+    postsLoading.value = false;
+  }
+};
+
 watch(() => authStore.isAuthenticated, (val) => {
   if (val) fetchFavoriteRates();
 });
@@ -197,6 +255,8 @@ onMounted(() => {
   if (authStore.isAuthenticated) {
     fetchFavoriteRates();
   }
+  fetchLatestRates();
+  fetchRecentPosts();
 });
 </script>
 
@@ -319,5 +379,86 @@ onMounted(() => {
 .feature-card p {
   color: #909399;
   font-size: 14px;
+}
+
+.guest-section {
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rate-card {
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.rate-card:hover {
+  transform: translateY(-2px);
+}
+
+.rate-pair {
+  font-size: 14px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.rate-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.ai-preview {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.ai-preview p {
+  color: #606266;
+  margin-bottom: 16px;
+}
+
+.post-preview {
+  padding: 12px 0;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.post-preview:last-child {
+  border-bottom: none;
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.post-username {
+  font-weight: 600;
+  color: #303133;
+  font-size: 14px;
+}
+
+.post-content {
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.post-footer {
+  font-size: 12px;
+  color: #909399;
 }
 </style>

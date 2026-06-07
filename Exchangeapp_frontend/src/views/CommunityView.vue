@@ -30,20 +30,20 @@
           <el-empty description="暂无帖子" />
         </div>
 
-        <div v-for="post in posts" :key="post.id" class="post-item">
+        <div v-for="post in posts" :key="post.ID" class="post-item">
           <div class="post-header">
             <el-avatar :size="36" :src="post.avatar || undefined">
               {{ post.username?.charAt(0)?.toUpperCase() }}
             </el-avatar>
             <div class="post-meta">
               <span class="post-username" @click="viewProfile(post.userId)">{{ post.username }}</span>
-              <span class="post-time">{{ formatTime(post.createdAt) }}</span>
+              <span class="post-time">{{ formatTime(post.CreatedAt) }}</span>
             </div>
             <el-tag v-if="post.currency" size="small" class="post-currency">{{ post.currency }}</el-tag>
           </div>
           <div class="post-content">{{ post.content }}</div>
           <div class="post-footer">
-            <el-button text @click="likePost(post.id)">
+            <el-button text @click="likePost(post.ID)">
               ❤️ {{ post.likes }}
             </el-button>
           </div>
@@ -60,13 +60,13 @@ import { useAuthStore } from '../store/auth';
 import axios from '../axios';
 
 interface Post {
-  id: number;
+  ID: number;
   userId: number;
   username: string;
   content: string;
   currency: string;
   likes: number;
-  createdAt: string;
+  CreatedAt: string;
   avatar?: string;
 }
 
@@ -115,7 +115,7 @@ const createPost = async () => {
 const likePost = async (id: number) => {
   try {
     await axios.post(`/posts/${id}/like`);
-    const post = posts.value.find((p) => p.id === id);
+    const post = posts.value.find((p) => p.ID === id);
     if (post) post.likes++;
   } catch {
     // interceptor handles error

@@ -12,6 +12,7 @@ type Config struct {
 	Database DatabaseConfig
 	Redis    RedisConfig
 	JWT      JWTConfig
+	LLM      LLMConfig
 }
 
 type AppConfig struct {
@@ -32,6 +33,13 @@ type RedisConfig struct {
 
 type JWTConfig struct {
 	Secret string
+}
+
+type LLMConfig struct {
+	BaseURL   string
+	APIKey    string
+	Model     string
+	MaxTokens int
 }
 
 func Load() *Config {
@@ -58,6 +66,12 @@ func Load() *Config {
 		JWT: JWTConfig{
 			Secret: envOr("JWT_SECRET", ""),
 		},
+		LLM: LLMConfig{
+			BaseURL:   envOr("LLM_BASE_URL", viper.GetString("llm.base_url")),
+			APIKey:    envOr("LLM_API_KEY", viper.GetString("llm.api_key")),
+			Model:     envOr("LLM_MODEL", viper.GetString("llm.model")),
+			MaxTokens: viper.GetInt("llm.max_tokens"),
+		},
 	}
 
 	if cfg.JWT.Secret == "" {
@@ -77,6 +91,15 @@ func Load() *Config {
 	}
 	if cfg.Database.MaxOpenConns == 0 {
 		cfg.Database.MaxOpenConns = 100
+	}
+	if cfg.LLM.BaseURL == "" {
+		cfg.LLM.BaseURL = "https://api.anthropic.com"
+	}
+	if cfg.LLM.Model == "" {
+		cfg.LLM.Model = "claude-sonnet-4-20250514"
+	}
+	if cfg.LLM.MaxTokens == 0 {
+		cfg.LLM.MaxTokens = 2048
 	}
 
 	return cfg

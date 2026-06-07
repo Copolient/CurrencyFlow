@@ -128,8 +128,13 @@ const trendTagType = computed(() => {
   }
 });
 
+// Escape HTML to prevent XSS, then apply safe markdown-like formatting
+const escapeHtml = (str: string) =>
+  str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 const formatAnalysis = (text: string) => {
-  return text
+  const safe = escapeHtml(text);
+  return safe
     .replace(/\n/g, '<br>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/## (.*?)(<br>|$)/g, '<h3>$1</h3>');

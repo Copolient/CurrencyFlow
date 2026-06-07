@@ -78,7 +78,7 @@ func main() {
 	favoriteSvc := service.NewFavoriteService(favoriteRepo)
 	postSvc := service.NewPostService(postRepo, userRepo, followRepo)
 	followSvc := service.NewFollowService(followRepo, userRepo)
-	aiAnalystSvc := service.NewAIAnalystService(rateHistoryRepo, redisCache)
+	aiAnalystSvc := service.NewAIAnalystService(rateHistoryRepo, redisCache, cfg.LLM)
 
 	// Initialize WebSocket hub
 	hub := ws.NewHub()
@@ -106,7 +106,7 @@ func main() {
 	}
 
 	// Setup router
-	r := router.SetupRouter(h, jwt, db, userRepo)
+	r, rateLimiter := router.SetupRouter(h, jwt, db, userRepo)
 
 	// Start rate collector scheduler (with WebSocket broadcast)
 	rateCollector := scheduler.NewRateCollector(rateHistorySvc, hub)
@@ -118,7 +118,7 @@ func main() {
 		Addr:         cfg.App.Port,
 		Handler:      r,
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		WriteTimeout: 120 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
@@ -135,6 +135,8 @@ func main() {
 	<-quit
 
 	log.Println("Shutting down server...")
+	hub.Stop()
+	rateLimiter.Stop()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

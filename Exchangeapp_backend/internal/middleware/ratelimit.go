@@ -15,6 +15,7 @@ type IPRateLimiter struct {
 	rate   rate.Limit
 	burst  int
 	cleanup *time.Ticker
+	done   chan struct{}
 }
 
 func NewIPRateLimiter(rps int, burst int) *IPRateLimiter {
@@ -23,19 +24,31 @@ func NewIPRateLimiter(rps int, burst int) *IPRateLimiter {
 		rate:   rate.Limit(rps),
 		burst:  burst,
 		cleanup: time.NewTicker(5 * time.Minute),
+		done:   make(chan struct{}),
 	}
 
 	go func() {
-		for range rl.cleanup.C {
-			rl.mu.Lock()
-			for ip := range rl.ips {
-				delete(rl.ips, ip)
+		for {
+			select {
+			case <-rl.done:
+				rl.cleanup.Stop()
+				return
+			case <-rl.cleanup.C:
+				rl.mu.Lock()
+				for ip := range rl.ips {
+					delete(rl.ips, ip)
+				}
+				rl.mu.Unlock()
 			}
-			rl.mu.Unlock()
 		}
 	}()
 
 	return rl
+}
+
+// Stop shuts down the cleanup goroutine.
+func (rl *IPRateLimiter) Stop() {
+	close(rl.done)
 }
 
 func (rl *IPRateLimiter) getLimiter(ip string) *rate.Limiter {
@@ -51,10 +64,12 @@ func (rl *IPRateLimiter) getLimiter(ip string) *rate.Limiter {
 	return limiter
 }
 
-func RateLimit(rps int) gin.HandlerFunc {
+// RateLimit returns a gin.HandlerFunc and the underlying IPRateLimiter.
+// Call limiter.Stop() during graceful shutdown to avoid goroutine leaks.
+func RateLimit(rps int) (gin.HandlerFunc, *IPRateLimiter) {
 	limiter := NewIPRateLimiter(rps, rps*2)
 
-	return func(c *gin.Context) {
+	fn := func(c *gin.Context) {
 		ip := c.ClientIP()
 		if !limiter.getLimiter(ip).Allow() {
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
@@ -64,4 +79,5 @@ func RateLimit(rps int) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+	return fn, limiter
 }

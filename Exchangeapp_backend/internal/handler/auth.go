@@ -17,10 +17,10 @@ func NewAuthHandler(authSvc *service.AuthService) *AuthHandler {
 
 func (h *AuthHandler) Register(ctx *gin.Context) {
 	var input struct {
-		Username string `form:"username" binding:"required"`
-		Password string `form:"password" binding:"required"`
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
 	}
-	if err := ctx.ShouldBind(&input); err != nil {
+	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

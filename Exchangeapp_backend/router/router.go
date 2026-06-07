@@ -6,6 +6,8 @@ import (
 	"exchangeapp/internal/repository"
 	"exchangeapp/pkg/auth"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -30,16 +32,29 @@ type Handlers struct {
 	AIAnalyst    *handler.AIAnalystHandler
 }
 
-func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB, userRepo repository.UserRepository) *gin.Engine {
+// SetupRouter builds the gin.Engine and returns it along with the rate limiter
+// (so the caller can call limiter.Stop() during graceful shutdown).
+func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB, userRepo repository.UserRepository) (*gin.Engine, *middleware.IPRateLimiter) {
 	r := gin.Default()
+
+	// CORS origins from env (comma-separated), fallback to localhost
+	corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if corsOrigins == "" {
+		corsOrigins = "http://localhost:5173,http://localhost:80"
+	}
+	origins := strings.Split(corsOrigins, ",")
+	for i := range origins {
+		origins[i] = strings.TrimSpace(origins[i])
+	}
 
 	// Global middleware
 	r.Use(middleware.Tracing())
 	r.Use(middleware.MetricsAndLogging())
 	r.Use(middleware.SecurityHeaders())
-	r.Use(middleware.RateLimit(100)) // 100 req/s per IP
+	rateLimiterFn, rateLimiter := middleware.RateLimit(100) // 100 req/s per IP
+	r.Use(rateLimiterFn)
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -76,8 +91,8 @@ func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB, userRepo reposit
 	v1.GET("/rates/history", h.RateHistory.GetHistory)
 	v1.GET("/rates/latest", h.RateHistory.GetLatest)
 
-	// AI Analyst
-	v1.POST("/ai/analyze", h.AIAnalyst.Analyze)
+	// AI Analyst (requires auth to prevent billing abuse)
+	v1.POST("/ai/analyze", middleware.AuthMiddleware(jwt, userRepo), h.AIAnalyst.Analyze)
 
 	// Public social routes
 	v1.GET("/posts", h.Post.GetAll)
@@ -129,5 +144,5 @@ func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB, userRepo reposit
 	r.POST("/api/auth/register", h.Auth.Register)
 	r.GET("/api/exchangeRates", h.Exchange.GetAll)
 
-	return r
+	return r, rateLimiter
 }

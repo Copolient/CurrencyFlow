@@ -9,11 +9,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// maxMessageSize is the maximum size of a WebSocket message.
+// 4096 bytes is sufficient for JSON rate updates and avoids truncation.
+const maxMessageSizeConst = 4096
+
 const (
 	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 512
+	maxMessageSize = 4096
 )
 
 type RateUpdate struct {
@@ -37,6 +41,7 @@ type Hub struct {
 	broadcast  chan []byte
 	register   chan *Client
 	unregister chan *Client
+	done       chan struct{}
 	mu         sync.RWMutex
 }
 
@@ -45,13 +50,23 @@ func NewHub() *Hub {
 		clients:    make(map[*Client]bool),
 		broadcast:  make(chan []byte, 256),
 		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		unregister: make(chan *Client, 64),
+		done:       make(chan struct{}),
 	}
 }
 
 func (h *Hub) Run() {
 	for {
 		select {
+		case <-h.done:
+			h.mu.Lock()
+			for client := range h.clients {
+				client.Close()
+				delete(h.clients, client)
+			}
+			h.mu.Unlock()
+			return
+
 		case client := <-h.register:
 			h.mu.Lock()
 			h.clients[client] = true
@@ -68,20 +83,28 @@ func (h *Hub) Run() {
 			log.Printf("WebSocket client disconnected (total: %d)", len(h.clients))
 
 		case message := <-h.broadcast:
+			// Collect clients with full buffers while holding RLock,
+			// then unregister them after releasing the lock to avoid deadlock.
+			var stale []*Client
 			h.mu.RLock()
 			for client := range h.clients {
 				select {
 				case client.send <- message:
 				default:
-					// Client buffer full, remove
-					go func(c *Client) {
-						h.unregister <- c
-					}(client)
+					stale = append(stale, client)
 				}
 			}
 			h.mu.RUnlock()
+			for _, c := range stale {
+				h.unregister <- c
+			}
 		}
 	}
+}
+
+// Stop signals the hub to shut down gracefully.
+func (h *Hub) Stop() {
+	close(h.done)
 }
 
 func (h *Hub) BroadcastRateUpdate(update RateUpdate) {

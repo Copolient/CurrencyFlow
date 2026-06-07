@@ -9,12 +9,13 @@ import (
 	"exchangeapp/internal/mock"
 	"exchangeapp/internal/model"
 	"exchangeapp/internal/service"
+	"exchangeapp/pkg/config"
 )
 
 func TestAnalyze_WithData(t *testing.T) {
 	repo := mock.NewRateHistoryRepo()
 	cache := mock.NewCache()
-	svc := service.NewAIAnalystService(repo, cache)
+	svc := service.NewAIAnalystService(repo, cache, config.LLMConfig{})
 
 	// Create some history data
 	now := time.Now()
@@ -50,7 +51,7 @@ func TestAnalyze_WithData(t *testing.T) {
 func TestAnalyze_NoData(t *testing.T) {
 	repo := mock.NewRateHistoryRepo()
 	cache := mock.NewCache()
-	svc := service.NewAIAnalystService(repo, cache)
+	svc := service.NewAIAnalystService(repo, cache, config.LLMConfig{})
 
 	result, err := svc.Analyze(context.Background(), "USD", "CNY", "")
 	if err != nil {
@@ -65,7 +66,7 @@ func TestAnalyze_NoData(t *testing.T) {
 func TestAnalyze_BearishTrend(t *testing.T) {
 	repo := mock.NewRateHistoryRepo()
 	cache := mock.NewCache()
-	svc := service.NewAIAnalystService(repo, cache)
+	svc := service.NewAIAnalystService(repo, cache, config.LLMConfig{})
 
 	// Create downward trend
 	now := time.Now()
@@ -92,7 +93,7 @@ func TestAnalyze_BearishTrend(t *testing.T) {
 func TestAnalyze_CacheHit(t *testing.T) {
 	repo := mock.NewRateHistoryRepo()
 	cache := mock.NewCache()
-	svc := service.NewAIAnalystService(repo, cache)
+	svc := service.NewAIAnalystService(repo, cache, config.LLMConfig{})
 
 	// Pre-populate cache
 	cachedResult := &service.AnalysisResult{
@@ -115,7 +116,7 @@ func TestAnalyze_CacheHit(t *testing.T) {
 func TestAnalyze_WithQuestion(t *testing.T) {
 	repo := mock.NewRateHistoryRepo()
 	cache := mock.NewCache()
-	svc := service.NewAIAnalystService(repo, cache)
+	svc := service.NewAIAnalystService(repo, cache, config.LLMConfig{})
 
 	// Create some data
 	now := time.Now()
