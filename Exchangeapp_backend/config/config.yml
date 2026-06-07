@@ -3,7 +3,7 @@ app:
   port: ":3000"
 
 database:
-  dsn: "root:YOUR_PASSWORD@tcp(127.0.0.1:3306)/bogger?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "root:YOUR_PASSWORD@tcp(127.0.0.1:3306)/exchangeapp?charset=utf8mb4&parseTime=True&loc=Local"
   maxidleconns: 11
   maxopenconns: 114
 
@@ -11,3 +11,9 @@ redis:
   addr: "localhost:6379"
   password: ""
   db: 0
+
+llm:
+  base_url: "https://api.anthropic.com"
+  api_key: ""
+  model: "claude-sonnet-4-20250514"
+  max_tokens: 2048
