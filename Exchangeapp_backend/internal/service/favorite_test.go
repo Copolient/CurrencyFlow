@@ -22,10 +22,8 @@ func TestAddFavorite_AlreadyExists(t *testing.T) {
 	repo := mock.NewFavoriteRepo()
 	svc := service.NewFavoriteService(repo)
 
-	// Add once
 	_ = svc.AddFavorite(1, "USD", "CNY")
 
-	// Add again - should not error
 	err := svc.AddFavorite(1, "USD", "CNY")
 	if err != nil {
 		t.Fatalf("expected no error for duplicate, got %v", err)
@@ -49,7 +47,7 @@ func TestGetFavorites_Success(t *testing.T) {
 
 	_ = svc.AddFavorite(1, "USD", "CNY")
 	_ = svc.AddFavorite(1, "EUR", "USD")
-	_ = svc.AddFavorite(2, "GBP", "JPY") // different user
+	_ = svc.AddFavorite(2, "GBP", "JPY")
 
 	favorites, err := svc.GetFavorites(1)
 	if err != nil {
@@ -91,9 +89,12 @@ func TestRemoveFavorite_Success(t *testing.T) {
 	_ = svc.AddFavorite(1, "USD", "CNY")
 	_ = svc.AddFavorite(1, "EUR", "USD")
 
-	err := svc.RemoveFavorite(1, "USD", "CNY")
+	removed, err := svc.RemoveFavorite(1, "USD", "CNY")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+	if !removed {
+		t.Fatal("expected removed to be true")
 	}
 
 	favorites, _ := svc.GetFavorites(1)
@@ -109,10 +110,12 @@ func TestRemoveFavorite_NotFound(t *testing.T) {
 	repo := mock.NewFavoriteRepo()
 	svc := service.NewFavoriteService(repo)
 
-	// Remove non-existent - should not error
-	err := svc.RemoveFavorite(1, "USD", "CNY")
+	removed, err := svc.RemoveFavorite(1, "USD", "CNY")
 	if err != nil {
-		t.Fatalf("expected no error for non-existent, got %v", err)
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if removed {
+		t.Fatal("expected removed to be false for non-existent")
 	}
 }
 
@@ -121,7 +124,7 @@ func TestRemoveFavorite_RepoError(t *testing.T) {
 	repo.Err = errors.New("db error")
 	svc := service.NewFavoriteService(repo)
 
-	err := svc.RemoveFavorite(1, "USD", "CNY")
+	_, err := svc.RemoveFavorite(1, "USD", "CNY")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

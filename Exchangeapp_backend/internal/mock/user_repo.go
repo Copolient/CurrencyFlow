@@ -52,6 +52,25 @@ func (r *UserRepo) FindByID(id uint) (*model.User, error) {
 	return nil, ErrNotFound
 }
 
+func (r *UserRepo) FindByIDs(ids []uint) ([]model.User, error) {
+	if r.Err != nil {
+		return nil, r.Err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	idSet := make(map[uint]bool)
+	for _, id := range ids {
+		idSet[id] = true
+	}
+	var result []model.User
+	for _, u := range r.users {
+		if idSet[u.ID] {
+			result = append(result, *u)
+		}
+	}
+	return result, nil
+}
+
 func (r *UserRepo) Update(user *model.User) error {
 	if r.Err != nil {
 		return r.Err
@@ -59,6 +78,22 @@ func (r *UserRepo) Update(user *model.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.users[user.Username] = user
+	return nil
+}
+
+func (r *UserRepo) IncrementFollowingCount(_ uint) error {
+	return nil // no-op in mock
+}
+
+func (r *UserRepo) DecrementFollowingCount(_ uint) error {
+	return nil
+}
+
+func (r *UserRepo) IncrementFollowersCount(_ uint) error {
+	return nil
+}
+
+func (r *UserRepo) DecrementFollowersCount(_ uint) error {
 	return nil
 }
 

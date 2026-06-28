@@ -2,6 +2,7 @@ package handler
 
 import (
 	"exchangeapp/internal/service"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,9 +22,8 @@ type favoriteRequest struct {
 }
 
 func (h *FavoriteHandler) Add(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -33,8 +33,9 @@ func (h *FavoriteHandler) Add(c *gin.Context) {
 		return
 	}
 
-	if err := h.favoriteSvc.AddFavorite(userID.(uint), req.FromCurrency, req.ToCurrency); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.favoriteSvc.AddFavorite(userID, req.FromCurrency, req.ToCurrency); err != nil {
+		log.Printf("AddFavorite error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to add favorite")
 		return
 	}
 
@@ -42,15 +43,15 @@ func (h *FavoriteHandler) Add(c *gin.Context) {
 }
 
 func (h *FavoriteHandler) GetByUser(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
-	favorites, err := h.favoriteSvc.GetFavorites(userID.(uint))
+	favorites, err := h.favoriteSvc.GetFavorites(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("GetFavorites error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to fetch favorites")
 		return
 	}
 
@@ -58,9 +59,8 @@ func (h *FavoriteHandler) GetByUser(c *gin.Context) {
 }
 
 func (h *FavoriteHandler) Remove(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -71,8 +71,26 @@ func (h *FavoriteHandler) Remove(c *gin.Context) {
 		return
 	}
 
-	if err := h.favoriteSvc.RemoveFavorite(userID.(uint), from, to); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	fromCode, valid := sanitizeCurrencyCode(from)
+	if !valid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid from currency code"})
+		return
+	}
+	toCode, valid := sanitizeCurrencyCode(to)
+	if !valid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to currency code"})
+		return
+	}
+
+	removed, err := h.favoriteSvc.RemoveFavorite(userID, fromCode, toCode)
+	if err != nil {
+		log.Printf("RemoveFavorite error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to remove favorite")
+		return
+	}
+
+	if !removed {
+		c.JSON(http.StatusNotFound, gin.H{"error": "favorite not found"})
 		return
 	}
 
@@ -80,9 +98,8 @@ func (h *FavoriteHandler) Remove(c *gin.Context) {
 }
 
 func (h *FavoriteHandler) Check(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -93,15 +110,27 @@ func (h *FavoriteHandler) Check(c *gin.Context) {
 		return
 	}
 
-	favorites, err := h.favoriteSvc.GetFavorites(userID.(uint))
+	fromCode, valid := sanitizeCurrencyCode(from)
+	if !valid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid from currency code"})
+		return
+	}
+	toCode, valid := sanitizeCurrencyCode(to)
+	if !valid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to currency code"})
+		return
+	}
+
+	favorites, err := h.favoriteSvc.GetFavorites(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("GetFavorites error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to check favorite")
 		return
 	}
 
 	favorited := false
 	for _, fav := range favorites {
-		if fav.FromCurrency == from && fav.ToCurrency == to {
+		if fav.FromCurrency == fromCode && fav.ToCurrency == toCode {
 			favorited = true
 			break
 		}

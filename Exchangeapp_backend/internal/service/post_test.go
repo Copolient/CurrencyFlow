@@ -91,9 +91,12 @@ func TestLikePost_Success(t *testing.T) {
 
 	_ = svc.CreatePost(1, "Test post", "")
 
-	err := svc.LikePost(1)
+	liked, err := svc.LikePost(1, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+	if !liked {
+		t.Fatal("expected liked to be true")
 	}
 
 	post, _ := svc.FindByID(1)

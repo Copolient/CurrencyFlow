@@ -9,6 +9,7 @@ import (
 type ArticleRepository interface {
 	Create(article *model.Article) error
 	FindAll() ([]model.Article, error)
+	FindAllPaginated(limit, offset int) ([]model.Article, error)
 	FindByID(id string) (*model.Article, error)
 }
 
@@ -26,7 +27,13 @@ func (r *articleRepo) Create(article *model.Article) error {
 
 func (r *articleRepo) FindAll() ([]model.Article, error) {
 	var articles []model.Article
-	err := r.db.Find(&articles).Error
+	err := r.db.Order("created_at DESC").Limit(100).Find(&articles).Error
+	return articles, err
+}
+
+func (r *articleRepo) FindAllPaginated(limit, offset int) ([]model.Article, error) {
+	var articles []model.Article
+	err := r.db.Order("created_at DESC").Limit(limit).Offset(offset).Find(&articles).Error
 	return articles, err
 }
 

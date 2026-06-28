@@ -43,9 +43,17 @@ func (s *FavoriteService) GetFavorites(userID uint) ([]model.Favorite, error) {
 	return favorites, nil
 }
 
-func (s *FavoriteService) RemoveFavorite(userID uint, from, to string) error {
-	if err := s.repo.Delete(userID, from, to); err != nil {
-		return fmt.Errorf("favoriteRepo.Delete: %w", err)
+func (s *FavoriteService) RemoveFavorite(userID uint, from, to string) (bool, error) {
+	exists, err := s.repo.Exists(userID, from, to)
+	if err != nil {
+		return false, fmt.Errorf("check favorite exists: %w", err)
 	}
-	return nil
+	if !exists {
+		return false, nil
+	}
+
+	if err := s.repo.Delete(userID, from, to); err != nil {
+		return false, fmt.Errorf("favoriteRepo.Delete: %w", err)
+	}
+	return true, nil
 }

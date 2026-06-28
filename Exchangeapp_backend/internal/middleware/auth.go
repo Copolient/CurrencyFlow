@@ -18,18 +18,20 @@ func AuthMiddleware(jwt *auth.JWTManager, userRepo repository.UserRepository) gi
 
 		username, err := jwt.ParseToken(token)
 		if err != nil || username == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
 		}
 
 		c.Set("username", username)
 
-		// Look up user ID
+		// Look up user — abort if user not found (deleted, DB error, etc.)
 		user, err := userRepo.FindByUsername(username)
-		if err == nil && user != nil {
-			c.Set("userID", user.ID)
+		if err != nil || user == nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+			return
 		}
 
+		c.Set("userID", user.ID)
 		c.Next()
 	}
 }

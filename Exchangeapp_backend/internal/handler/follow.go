@@ -2,6 +2,7 @@ package handler
 
 import (
 	"exchangeapp/internal/service"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -17,9 +18,8 @@ func NewFollowHandler(followSvc *service.FollowService) *FollowHandler {
 }
 
 func (h *FollowHandler) Follow(c *gin.Context) {
-	followerID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	followerID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -30,8 +30,9 @@ func (h *FollowHandler) Follow(c *gin.Context) {
 		return
 	}
 
-	if err := h.followSvc.Follow(followerID.(uint), uint(followeeID)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.followSvc.Follow(followerID, uint(followeeID)); err != nil {
+		log.Printf("Follow error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to follow user")
 		return
 	}
 
@@ -39,9 +40,8 @@ func (h *FollowHandler) Follow(c *gin.Context) {
 }
 
 func (h *FollowHandler) Unfollow(c *gin.Context) {
-	followerID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	followerID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -52,8 +52,9 @@ func (h *FollowHandler) Unfollow(c *gin.Context) {
 		return
 	}
 
-	if err := h.followSvc.Unfollow(followerID.(uint), uint(followeeID)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.followSvc.Unfollow(followerID, uint(followeeID)); err != nil {
+		log.Printf("Unfollow error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to unfollow user")
 		return
 	}
 
@@ -61,9 +62,8 @@ func (h *FollowHandler) Unfollow(c *gin.Context) {
 }
 
 func (h *FollowHandler) IsFollowing(c *gin.Context) {
-	followerID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	followerID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -74,9 +74,10 @@ func (h *FollowHandler) IsFollowing(c *gin.Context) {
 		return
 	}
 
-	isFollowing, err := h.followSvc.IsFollowing(followerID.(uint), uint(followeeID))
+	isFollowing, err := h.followSvc.IsFollowing(followerID, uint(followeeID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("IsFollowing error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to check follow status")
 		return
 	}
 

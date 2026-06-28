@@ -2,6 +2,7 @@ package handler
 
 import (
 	"exchangeapp/internal/service"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,8 +18,8 @@ func NewAuthHandler(authSvc *service.AuthService) *AuthHandler {
 
 func (h *AuthHandler) Register(ctx *gin.Context) {
 	var input struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
+		Username string `json:"username" binding:"required,min=2,max=32"`
+		Password string `json:"password" binding:"required,min=6"`
 	}
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -27,11 +28,12 @@ func (h *AuthHandler) Register(ctx *gin.Context) {
 
 	token, err := h.authSvc.Register(input.Username, input.Password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("Register error: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "registration failed"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"token": token})
+	ctx.JSON(http.StatusCreated, gin.H{"token": token})
 }
 
 func (h *AuthHandler) Login(ctx *gin.Context) {
@@ -46,7 +48,7 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 
 	token, err := h.authSvc.Login(input.Username, input.Password)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "wrong credentials"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 

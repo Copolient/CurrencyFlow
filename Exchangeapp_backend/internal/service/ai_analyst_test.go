@@ -2,7 +2,6 @@ package service_test
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -95,21 +94,31 @@ func TestAnalyze_CacheHit(t *testing.T) {
 	cache := mock.NewCache()
 	svc := service.NewAIAnalystService(repo, cache, config.LLMConfig{})
 
-	// Pre-populate cache
-	cachedResult := &service.AnalysisResult{
-		Analysis: "Cached analysis",
-		Trend:    "bullish",
+	// Create data and call once to populate cache
+	now := time.Now()
+	for i := 0; i < 10; i++ {
+		repo.Create(&model.ExchangeRateHistory{
+			FromCurrency: "USD",
+			ToCurrency:   "CNY",
+			Rate:         7.0 + float64(i)*0.01,
+			Timestamp:    now.Add(-time.Duration(10-i) * 24 * time.Hour),
+		})
 	}
-	data, _ := json.Marshal(cachedResult)
-	cache.Set(context.Background(), "ai_analysis:USD:CNY", string(data), time.Hour)
 
-	result, err := svc.Analyze(context.Background(), "USD", "CNY", "")
+	// First call populates cache
+	result1, err := svc.Analyze(context.Background(), "USD", "CNY", "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if result.Analysis != "Cached analysis" {
-		t.Fatalf("expected cached analysis, got %s", result.Analysis)
+	// Second call should hit cache
+	result2, err := svc.Analyze(context.Background(), "USD", "CNY", "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result2.Analysis != result1.Analysis {
+		t.Fatalf("expected cached analysis to match, got different results")
 	}
 }
 

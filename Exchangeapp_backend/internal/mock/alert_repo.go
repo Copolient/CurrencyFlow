@@ -56,6 +56,21 @@ func (r *AlertRepo) FindUntriggered() ([]model.RateAlert, error) {
 	return result, nil
 }
 
+func (r *AlertRepo) FindUntriggeredByPair(from, to string) ([]model.RateAlert, error) {
+	if r.Err != nil {
+		return nil, r.Err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var result []model.RateAlert
+	for _, a := range r.alerts {
+		if !a.Triggered && a.FromCurrency == from && a.ToCurrency == to {
+			result = append(result, a)
+		}
+	}
+	return result, nil
+}
+
 func (r *AlertRepo) MarkTriggered(id uint) error {
 	if r.Err != nil {
 		return r.Err
@@ -71,18 +86,21 @@ func (r *AlertRepo) MarkTriggered(id uint) error {
 	return nil
 }
 
-func (r *AlertRepo) Delete(id uint, userID uint) error {
+func (r *AlertRepo) Delete(id uint, userID uint) (bool, error) {
 	if r.Err != nil {
-		return r.Err
+		return false, r.Err
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	var result []model.RateAlert
+	found := false
 	for _, a := range r.alerts {
-		if !(a.ID == id && a.UserID == userID) {
+		if a.ID == id && a.UserID == userID {
+			found = true
+		} else {
 			result = append(result, a)
 		}
 	}
 	r.alerts = result
-	return nil
+	return found, nil
 }

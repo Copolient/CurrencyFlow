@@ -32,7 +32,7 @@ func (j *JWTManager) GenerateToken(username string) (string, error) {
 		"exp":      time.Now().Add(time.Hour * 72).Unix(),
 	})
 	signedToken, err := token.SignedString(j.secret)
-	return "Bearer " + signedToken, err
+	return signedToken, err
 }
 
 func (j *JWTManager) ParseToken(tokenString string) (string, error) {

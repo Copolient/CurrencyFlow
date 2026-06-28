@@ -46,6 +46,10 @@ func (c *Cache) Incr(_ context.Context, key string) (int64, error) {
 	return 1, nil
 }
 
+func (c *Cache) Expire(_ context.Context, _ string, _ time.Duration) error {
+	return nil // no-op in mock
+}
+
 var ErrCacheMiss = &cacheMissError{}
 
 type cacheMissError struct{}

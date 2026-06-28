@@ -88,9 +88,14 @@ func (s *RateHistoryService) RecordRate(ctx context.Context, from, to string, ra
 		return fmt.Errorf("rateHistoryRepo.Create: %w", err)
 	}
 
-	// Invalidate cache
+	// Invalidate cache for this pair and the global latest
 	if s.cache != nil {
 		_ = s.cache.Del(ctx, "rate_history:latest:all")
+		_ = s.cache.Del(ctx, fmt.Sprintf("rate_history:%s:%s:1D", from, to))
+		_ = s.cache.Del(ctx, fmt.Sprintf("rate_history:%s:%s:1W", from, to))
+		_ = s.cache.Del(ctx, fmt.Sprintf("rate_history:%s:%s:1M", from, to))
+		_ = s.cache.Del(ctx, fmt.Sprintf("rate_history:%s:%s:3M", from, to))
+		_ = s.cache.Del(ctx, fmt.Sprintf("rate_history:%s:%s:1Y", from, to))
 	}
 
 	return nil

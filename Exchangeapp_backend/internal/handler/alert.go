@@ -2,6 +2,7 @@ package handler
 
 import (
 	"exchangeapp/internal/service"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -24,9 +25,8 @@ type alertRequest struct {
 }
 
 func (h *AlertHandler) Create(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -36,8 +36,9 @@ func (h *AlertHandler) Create(c *gin.Context) {
 		return
 	}
 
-	if err := h.alertSvc.CreateAlert(userID.(uint), req.FromCurrency, req.ToCurrency, req.TargetRate, req.Direction); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.alertSvc.CreateAlert(userID, req.FromCurrency, req.ToCurrency, req.TargetRate, req.Direction); err != nil {
+		log.Printf("CreateAlert error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to create alert")
 		return
 	}
 
@@ -45,15 +46,15 @@ func (h *AlertHandler) Create(c *gin.Context) {
 }
 
 func (h *AlertHandler) GetByUser(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
-	alerts, err := h.alertSvc.GetUserAlerts(userID.(uint))
+	alerts, err := h.alertSvc.GetUserAlerts(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("GetUserAlerts error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to fetch alerts")
 		return
 	}
 
@@ -61,9 +62,8 @@ func (h *AlertHandler) GetByUser(c *gin.Context) {
 }
 
 func (h *AlertHandler) Delete(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -74,8 +74,9 @@ func (h *AlertHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.alertSvc.DeleteAlert(uint(id), userID.(uint)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.alertSvc.DeleteAlert(uint(id), userID); err != nil {
+		log.Printf("DeleteAlert error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to delete alert")
 		return
 	}
 

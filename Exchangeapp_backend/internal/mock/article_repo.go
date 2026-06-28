@@ -41,6 +41,27 @@ func (r *ArticleRepo) FindAll() ([]model.Article, error) {
 	return result, nil
 }
 
+func (r *ArticleRepo) FindAllPaginated(limit, offset int) ([]model.Article, error) {
+	if r.Err != nil {
+		return nil, r.Err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	result := make([]model.Article, 0, len(r.articles))
+	for _, a := range r.articles {
+		result = append(result, *a)
+	}
+	start := offset
+	if start > len(result) {
+		return nil, nil
+	}
+	end := start + limit
+	if end > len(result) {
+		end = len(result)
+	}
+	return result[start:end], nil
+}
+
 func (r *ArticleRepo) FindByID(id string) (*model.Article, error) {
 	if r.Err != nil {
 		return nil, r.Err

@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -84,11 +85,18 @@ func NewAIAnalystService(rateHistoryRepo repository.RateHistoryRepository, cache
 	}
 }
 
-func (s *AIAnalystService) Analyze(ctx context.Context, from, to, question string) (*AnalysisResult, error) {
-	cacheKey := fmt.Sprintf("ai_analysis:%s:%s", from, to)
-	if question != "" {
-		cacheKey += ":" + question
+func sanitizeCacheKey(parts ...string) string {
+	h := sha256.New()
+	for _, p := range parts {
+		h.Write([]byte(p))
+		h.Write([]byte{0})
 	}
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func (s *AIAnalystService) Analyze(ctx context.Context, from, to, question string) (*AnalysisResult, error) {
+	// Use sanitized cache key to prevent injection
+	cacheKey := "ai_analysis:" + sanitizeCacheKey(from, to, question)
 
 	// Check cache (only for no-question requests to avoid caching generic answers)
 	if question == "" && s.cache != nil {
@@ -192,7 +200,8 @@ func (s *AIAnalystService) analyzeWithLLM(ctx context.Context, from, to, questio
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	// Limit response body to 10MB to prevent memory exhaustion
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}

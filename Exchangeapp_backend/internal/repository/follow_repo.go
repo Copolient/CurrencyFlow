@@ -8,7 +8,7 @@ import (
 
 type FollowRepository interface {
 	Create(follow *model.Follow) error
-	Delete(followerID, followeeID uint) error
+	Delete(followerID, followeeID uint) (bool, error)
 	Exists(followerID, followeeID uint) (bool, error)
 	FindFollowing(userID uint) ([]uint, error)
 	FindFollowers(userID uint) ([]uint, error)
@@ -26,8 +26,9 @@ func (r *followRepo) Create(follow *model.Follow) error {
 	return r.db.Create(follow).Error
 }
 
-func (r *followRepo) Delete(followerID, followeeID uint) error {
-	return r.db.Where("follower_id = ? AND followee_id = ?", followerID, followeeID).Delete(&model.Follow{}).Error
+func (r *followRepo) Delete(followerID, followeeID uint) (bool, error) {
+	result := r.db.Where("follower_id = ? AND followee_id = ?", followerID, followeeID).Delete(&model.Follow{})
+	return result.RowsAffected > 0, result.Error
 }
 
 func (r *followRepo) Exists(followerID, followeeID uint) (bool, error) {

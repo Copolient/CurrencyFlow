@@ -2,6 +2,7 @@ package handler
 
 import (
 	"exchangeapp/internal/service"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -22,9 +23,8 @@ type postRequest struct {
 }
 
 func (h *PostHandler) Create(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -34,8 +34,9 @@ func (h *PostHandler) Create(c *gin.Context) {
 		return
 	}
 
-	if err := h.postSvc.CreatePost(userID.(uint), req.Content, req.Currency); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.postSvc.CreatePost(userID, req.Content, req.Currency); err != nil {
+		log.Printf("CreatePost error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to create post")
 		return
 	}
 
@@ -54,15 +55,12 @@ func (h *PostHandler) GetAll(c *gin.Context) {
 		pageSize = 20
 	}
 
-	userID, _ := c.Get("userID") // optional for following feed
-	var uid uint
-	if userID != nil {
-		uid = userID.(uint)
-	}
+	uid := getUserIDOptional(c)
 
 	posts, err := h.postSvc.GetPosts(feedType, uid, page, pageSize)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("GetPosts error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to fetch posts")
 		return
 	}
 
@@ -70,6 +68,11 @@ func (h *PostHandler) GetAll(c *gin.Context) {
 }
 
 func (h *PostHandler) Like(c *gin.Context) {
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -77,8 +80,15 @@ func (h *PostHandler) Like(c *gin.Context) {
 		return
 	}
 
-	if err := h.postSvc.LikePost(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	liked, err := h.postSvc.LikePost(uint(id), userID)
+	if err != nil {
+		log.Printf("LikePost error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to like post")
+		return
+	}
+
+	if !liked {
+		c.JSON(http.StatusOK, gin.H{"message": "already liked"})
 		return
 	}
 

@@ -10,4 +10,5 @@ type Cache interface {
 	Set(ctx context.Context, key string, value string, ttl time.Duration) error
 	Del(ctx context.Context, key string) error
 	Incr(ctx context.Context, key string) (int64, error)
+	Expire(ctx context.Context, key string, ttl time.Duration) error
 }

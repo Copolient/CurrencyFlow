@@ -2,6 +2,7 @@ package handler
 
 import (
 	"exchangeapp/internal/repository"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -47,9 +48,8 @@ func (h *UserProfileHandler) GetProfile(c *gin.Context) {
 }
 
 func (h *UserProfileHandler) UpdateProfile(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -59,9 +59,10 @@ func (h *UserProfileHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userRepo.FindByID(userID.(uint))
+	user, err := h.userRepo.FindByID(userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		log.Printf("FindByID error: %v", err)
+		genericError(c, http.StatusNotFound, "user not found")
 		return
 	}
 
@@ -69,7 +70,8 @@ func (h *UserProfileHandler) UpdateProfile(c *gin.Context) {
 	user.Bio = req.Bio
 
 	if err := h.userRepo.Update(user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("Update user error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to update profile")
 		return
 	}
 

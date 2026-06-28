@@ -2,6 +2,7 @@ package handler
 
 import (
 	"exchangeapp/internal/service"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -25,9 +26,21 @@ func (h *RateHistoryHandler) GetHistory(ctx *gin.Context) {
 		return
 	}
 
-	histories, err := h.rateHistorySvc.GetHistoryByPair(ctx.Request.Context(), from, to, rangeStr)
+	fromCode, valid := sanitizeCurrencyCode(from)
+	if !valid {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid from currency code"})
+		return
+	}
+	toCode, valid := sanitizeCurrencyCode(to)
+	if !valid {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid to currency code"})
+		return
+	}
+
+	histories, err := h.rateHistorySvc.GetHistoryByPair(ctx.Request.Context(), fromCode, toCode, rangeStr)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("GetHistoryByPair error: %v", err)
+		genericError(ctx, http.StatusInternalServerError, "failed to fetch rate history")
 		return
 	}
 
@@ -37,7 +50,8 @@ func (h *RateHistoryHandler) GetHistory(ctx *gin.Context) {
 func (h *RateHistoryHandler) GetLatest(ctx *gin.Context) {
 	histories, err := h.rateHistorySvc.GetLatestByAllPairs(ctx.Request.Context())
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("GetLatestByAllPairs error: %v", err)
+		genericError(ctx, http.StatusInternalServerError, "failed to fetch latest rates")
 		return
 	}
 

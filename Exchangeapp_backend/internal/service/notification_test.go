@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -13,12 +14,11 @@ func TestGetNotifications_Success(t *testing.T) {
 	repo := mock.NewNotificationRepo()
 	svc := service.NewNotificationService(repo)
 
-	// Create notifications
 	repo.Create(&model.Notification{UserID: 1, Title: "Test 1"})
 	repo.Create(&model.Notification{UserID: 1, Title: "Test 2"})
 	repo.Create(&model.Notification{UserID: 2, Title: "Other user"})
 
-	notifications, err := svc.GetNotifications(1)
+	notifications, err := svc.GetNotifications(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -31,7 +31,7 @@ func TestGetNotifications_Empty(t *testing.T) {
 	repo := mock.NewNotificationRepo()
 	svc := service.NewNotificationService(repo)
 
-	notifications, err := svc.GetNotifications(1)
+	notifications, err := svc.GetNotifications(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -45,7 +45,7 @@ func TestGetNotifications_RepoError(t *testing.T) {
 	repo.Err = errors.New("db error")
 	svc := service.NewNotificationService(repo)
 
-	_, err := svc.GetNotifications(1)
+	_, err := svc.GetNotifications(context.Background(), 1)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -57,7 +57,7 @@ func TestMarkRead_Success(t *testing.T) {
 
 	repo.Create(&model.Notification{UserID: 1, Title: "Test"})
 
-	err := svc.MarkRead(1, 1)
+	err := svc.MarkRead(context.Background(), 1, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -68,7 +68,7 @@ func TestMarkRead_RepoError(t *testing.T) {
 	repo.Err = errors.New("db error")
 	svc := service.NewNotificationService(repo)
 
-	err := svc.MarkRead(1, 1)
+	err := svc.MarkRead(context.Background(), 1, 1)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -81,12 +81,12 @@ func TestMarkAllRead_Success(t *testing.T) {
 	repo.Create(&model.Notification{UserID: 1, Title: "Test 1", Read: false})
 	repo.Create(&model.Notification{UserID: 1, Title: "Test 2", Read: false})
 
-	err := svc.MarkAllRead(1)
+	err := svc.MarkAllRead(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	count, _ := svc.CountUnread(1)
+	count, _ := svc.CountUnread(context.Background(), 1)
 	if count != 0 {
 		t.Fatalf("expected 0 unread after mark all, got %d", count)
 	}
@@ -97,7 +97,7 @@ func TestMarkAllRead_RepoError(t *testing.T) {
 	repo.Err = errors.New("db error")
 	svc := service.NewNotificationService(repo)
 
-	err := svc.MarkAllRead(1)
+	err := svc.MarkAllRead(context.Background(), 1)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -111,7 +111,7 @@ func TestCountUnread_Success(t *testing.T) {
 	repo.Create(&model.Notification{UserID: 1, Title: "Test 2", Read: true})
 	repo.Create(&model.Notification{UserID: 1, Title: "Test 3", Read: false})
 
-	count, err := svc.CountUnread(1)
+	count, err := svc.CountUnread(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -125,7 +125,7 @@ func TestCountUnread_RepoError(t *testing.T) {
 	repo.Err = errors.New("db error")
 	svc := service.NewNotificationService(repo)
 
-	_, err := svc.CountUnread(1)
+	_, err := svc.CountUnread(context.Background(), 1)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

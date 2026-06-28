@@ -3,6 +3,7 @@ package handler
 import (
 	"exchangeapp/internal/model"
 	"exchangeapp/internal/service"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +25,8 @@ func (h *ExchangeHandler) Create(ctx *gin.Context) {
 	}
 
 	if err := h.exchangeSvc.CreateExchangeRate(&rate); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("CreateExchangeRate error: %v", err)
+		genericError(ctx, http.StatusInternalServerError, "failed to create exchange rate")
 		return
 	}
 
@@ -34,7 +36,8 @@ func (h *ExchangeHandler) Create(ctx *gin.Context) {
 func (h *ExchangeHandler) GetAll(ctx *gin.Context) {
 	rates, err := h.exchangeSvc.GetExchangeRates()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("GetExchangeRates error: %v", err)
+		genericError(ctx, http.StatusInternalServerError, "failed to fetch exchange rates")
 		return
 	}
 

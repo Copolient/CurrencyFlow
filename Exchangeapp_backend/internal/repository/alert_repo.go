@@ -10,8 +10,9 @@ type AlertRepository interface {
 	Create(alert *model.RateAlert) error
 	FindByUserID(userID uint) ([]model.RateAlert, error)
 	FindUntriggered() ([]model.RateAlert, error)
+	FindUntriggeredByPair(from, to string) ([]model.RateAlert, error)
 	MarkTriggered(id uint) error
-	Delete(id uint, userID uint) error
+	Delete(id uint, userID uint) (bool, error)
 }
 
 type alertRepo struct {
@@ -38,10 +39,17 @@ func (r *alertRepo) FindUntriggered() ([]model.RateAlert, error) {
 	return alerts, err
 }
 
+func (r *alertRepo) FindUntriggeredByPair(from, to string) ([]model.RateAlert, error) {
+	var alerts []model.RateAlert
+	err := r.db.Where("triggered = ? AND from_currency = ? AND to_currency = ?", false, from, to).Find(&alerts).Error
+	return alerts, err
+}
+
 func (r *alertRepo) MarkTriggered(id uint) error {
 	return r.db.Model(&model.RateAlert{}).Where("id = ?", id).Update("triggered", true).Error
 }
 
-func (r *alertRepo) Delete(id uint, userID uint) error {
-	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&model.RateAlert{}).Error
+func (r *alertRepo) Delete(id uint, userID uint) (bool, error) {
+	result := r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&model.RateAlert{})
+	return result.RowsAffected > 0, result.Error
 }

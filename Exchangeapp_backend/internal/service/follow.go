@@ -40,19 +40,24 @@ func (s *FollowService) Follow(followerID, followeeID uint) error {
 		return fmt.Errorf("followRepo.Create: %w", err)
 	}
 
-	// Update counts
-	s.updateFollowCounts(followerID, followeeID)
+	// Use atomic count updates to avoid race conditions
+	_ = s.userRepo.IncrementFollowingCount(followerID)
+	_ = s.userRepo.IncrementFollowersCount(followeeID)
 
 	return nil
 }
 
 func (s *FollowService) Unfollow(followerID, followeeID uint) error {
-	if err := s.followRepo.Delete(followerID, followeeID); err != nil {
+	deleted, err := s.followRepo.Delete(followerID, followeeID)
+	if err != nil {
 		return fmt.Errorf("followRepo.Delete: %w", err)
 	}
 
-	// Update counts
-	s.updateFollowCounts(followerID, followeeID)
+	if deleted {
+		// Use atomic count updates
+		_ = s.userRepo.DecrementFollowingCount(followerID)
+		_ = s.userRepo.DecrementFollowersCount(followeeID)
+	}
 
 	return nil
 }
@@ -79,20 +84,4 @@ func (s *FollowService) GetFollowers(userID uint) ([]uint, error) {
 		return nil, fmt.Errorf("followRepo.FindFollowers: %w", err)
 	}
 	return ids, nil
-}
-
-func (s *FollowService) updateFollowCounts(followerID, followeeID uint) {
-	// Update follower's following count
-	following, _ := s.followRepo.FindFollowing(followerID)
-	if user, err := s.userRepo.FindByID(followerID); err == nil {
-		user.FollowingCount = len(following)
-		_ = s.userRepo.Update(user)
-	}
-
-	// Update followee's followers count
-	followers, _ := s.followRepo.FindFollowers(followeeID)
-	if user, err := s.userRepo.FindByID(followeeID); err == nil {
-		user.FollowersCount = len(followers)
-		_ = s.userRepo.Update(user)
-	}
 }

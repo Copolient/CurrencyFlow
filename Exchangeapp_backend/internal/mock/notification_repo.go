@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"context"
 	"exchangeapp/internal/model"
 	"sync"
 )
@@ -26,7 +27,7 @@ func (r *NotificationRepo) Create(notification *model.Notification) error {
 	return nil
 }
 
-func (r *NotificationRepo) FindByUserID(userID uint) ([]model.Notification, error) {
+func (r *NotificationRepo) FindByUserID(_ context.Context, userID uint) ([]model.Notification, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -41,7 +42,7 @@ func (r *NotificationRepo) FindByUserID(userID uint) ([]model.Notification, erro
 	return result, nil
 }
 
-func (r *NotificationRepo) MarkRead(id uint, userID uint) error {
+func (r *NotificationRepo) MarkRead(_ context.Context, id uint, userID uint) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -56,7 +57,7 @@ func (r *NotificationRepo) MarkRead(id uint, userID uint) error {
 	return nil
 }
 
-func (r *NotificationRepo) MarkAllRead(userID uint) error {
+func (r *NotificationRepo) MarkAllRead(_ context.Context, userID uint) error {
 	if r.Err != nil {
 		return r.Err
 	}
@@ -70,7 +71,7 @@ func (r *NotificationRepo) MarkAllRead(userID uint) error {
 	return nil
 }
 
-func (r *NotificationRepo) CountUnread(userID uint) (int64, error) {
+func (r *NotificationRepo) CountUnread(_ context.Context, userID uint) (int64, error) {
 	if r.Err != nil {
 		return 0, r.Err
 	}

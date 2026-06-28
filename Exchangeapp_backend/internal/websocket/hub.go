@@ -9,10 +9,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// maxMessageSize is the maximum size of a WebSocket message.
-// 4096 bytes is sufficient for JSON rate updates and avoids truncation.
-const maxMessageSizeConst = 4096
-
 const (
 	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second

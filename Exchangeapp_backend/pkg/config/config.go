@@ -77,6 +77,9 @@ func Load() *Config {
 	if cfg.JWT.Secret == "" {
 		log.Fatal("JWT_SECRET is required (set via env or config)")
 	}
+	if len(cfg.JWT.Secret) < 16 {
+		log.Fatal("JWT_SECRET must be at least 16 characters")
+	}
 	if cfg.Database.Dsn == "" {
 		log.Fatal("DB_DSN is required (set via env or config)")
 	}
@@ -98,7 +101,7 @@ func Load() *Config {
 	if cfg.LLM.Model == "" {
 		cfg.LLM.Model = "claude-sonnet-4-20250514"
 	}
-	if cfg.LLM.MaxTokens == 0 {
+	if cfg.LLM.MaxTokens <= 0 {
 		cfg.LLM.MaxTokens = 2048
 	}
 

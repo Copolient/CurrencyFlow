@@ -2,6 +2,7 @@ package handler
 
 import (
 	"exchangeapp/internal/service"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -17,15 +18,15 @@ func NewNotificationHandler(notifSvc *service.NotificationService) *Notification
 }
 
 func (h *NotificationHandler) GetAll(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
-	notifications, err := h.notifSvc.GetNotifications(userID.(uint))
+	notifications, err := h.notifSvc.GetNotifications(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("GetNotifications error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to fetch notifications")
 		return
 	}
 
@@ -33,9 +34,8 @@ func (h *NotificationHandler) GetAll(c *gin.Context) {
 }
 
 func (h *NotificationHandler) MarkRead(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -46,8 +46,9 @@ func (h *NotificationHandler) MarkRead(c *gin.Context) {
 		return
 	}
 
-	if err := h.notifSvc.MarkRead(uint(id), userID.(uint)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.notifSvc.MarkRead(c.Request.Context(), uint(id), userID); err != nil {
+		log.Printf("MarkRead error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to mark as read")
 		return
 	}
 
@@ -55,14 +56,14 @@ func (h *NotificationHandler) MarkRead(c *gin.Context) {
 }
 
 func (h *NotificationHandler) MarkAllRead(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
-	if err := h.notifSvc.MarkAllRead(userID.(uint)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.notifSvc.MarkAllRead(c.Request.Context(), userID); err != nil {
+		log.Printf("MarkAllRead error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to mark all as read")
 		return
 	}
 
@@ -70,15 +71,15 @@ func (h *NotificationHandler) MarkAllRead(c *gin.Context) {
 }
 
 func (h *NotificationHandler) CountUnread(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
-	count, err := h.notifSvc.CountUnread(userID.(uint))
+	count, err := h.notifSvc.CountUnread(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("CountUnread error: %v", err)
+		genericError(c, http.StatusInternalServerError, "failed to count unread")
 		return
 	}
 

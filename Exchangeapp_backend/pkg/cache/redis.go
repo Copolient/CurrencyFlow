@@ -43,6 +43,10 @@ func (r *RedisCache) Incr(ctx context.Context, key string) (int64, error) {
 	return r.client.Incr(ctx, key).Result()
 }
 
+func (r *RedisCache) Expire(ctx context.Context, key string, ttl time.Duration) error {
+	return r.client.Expire(ctx, key, ttl).Err()
+}
+
 func (r *RedisCache) Ping(ctx context.Context) error {
 	return r.client.Ping(ctx).Err()
 }

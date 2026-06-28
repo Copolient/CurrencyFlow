@@ -79,8 +79,10 @@ func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB, userRepo reposit
 	// API v1
 	v1 := r.Group("/api/v1")
 
-	// Public auth routes
+	// Public auth routes (stricter rate limit: 10 req/s per IP)
+	authRateLimitFn, _ := middleware.RateLimit(10)
 	authGroup := v1.Group("/auth")
+	authGroup.Use(authRateLimitFn)
 	{
 		authGroup.POST("/login", h.Auth.Login)
 		authGroup.POST("/register", h.Auth.Register)
@@ -139,7 +141,8 @@ func SetupRouter(h Handlers, jwt *auth.JWTManager, db *gorm.DB, userRepo reposit
 		protected.PUT("/users/profile", h.UserProfile.UpdateProfile)
 	}
 
-	// Backward-compatible redirects from /api/* to /api/v1/*
+	// Deprecated: backward-compatible routes under /api/* — use /api/v1/* instead.
+	// These will be removed in a future version.
 	r.POST("/api/auth/login", h.Auth.Login)
 	r.POST("/api/auth/register", h.Auth.Register)
 	r.GET("/api/exchangeRates", h.Exchange.GetAll)

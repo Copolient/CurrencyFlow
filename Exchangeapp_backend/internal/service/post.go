@@ -60,22 +60,52 @@ func (s *PostService) GetPosts(feedType string, userID uint, page, pageSize int)
 		return nil, fmt.Errorf("postRepo.Find: %w", err)
 	}
 
-	// Enrich with username
-	for i := range posts {
-		user, err := s.userRepo.FindByID(posts[i].UserID)
-		if err == nil && user != nil {
-			posts[i].Username = user.Username
+	if len(posts) == 0 {
+		return posts, nil
+	}
+
+	// Batch fetch users to avoid N+1 query
+	userIDs := make([]uint, 0, len(posts))
+	seen := make(map[uint]bool)
+	for _, p := range posts {
+		if !seen[p.UserID] {
+			seen[p.UserID] = true
+			userIDs = append(userIDs, p.UserID)
+		}
+	}
+
+	users, err := s.userRepo.FindByIDs(userIDs)
+	if err == nil {
+		userMap := make(map[uint]string, len(users))
+		for _, u := range users {
+			userMap[u.ID] = u.Username
+		}
+		for i := range posts {
+			if name, ok := userMap[posts[i].UserID]; ok {
+				posts[i].Username = name
+			}
 		}
 	}
 
 	return posts, nil
 }
 
-func (s *PostService) LikePost(id uint) error {
-	if err := s.postRepo.IncrementLikes(id); err != nil {
-		return fmt.Errorf("postRepo.IncrementLikes: %w", err)
+func (s *PostService) LikePost(postID, userID uint) (bool, error) {
+	// Check if already liked
+	liked, err := s.postRepo.HasUserLiked(postID, userID)
+	if err != nil {
+		return false, fmt.Errorf("postRepo.HasUserLiked: %w", err)
 	}
-	return nil
+	if liked {
+		return false, nil // already liked
+	}
+
+	// Record the like and increment count atomically
+	if err := s.postRepo.AddLike(postID, userID); err != nil {
+		return false, fmt.Errorf("postRepo.AddLike: %w", err)
+	}
+
+	return true, nil
 }
 
 // FindByID is a helper needed for enriching posts

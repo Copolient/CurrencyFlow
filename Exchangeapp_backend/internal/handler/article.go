@@ -3,6 +3,7 @@ package handler
 import (
 	"exchangeapp/internal/model"
 	"exchangeapp/internal/service"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +25,8 @@ func (h *ArticleHandler) Create(ctx *gin.Context) {
 	}
 
 	if err := h.articleSvc.CreateArticle(ctx.Request.Context(), &article); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("CreateArticle error: %v", err)
+		genericError(ctx, http.StatusInternalServerError, "failed to create article")
 		return
 	}
 
@@ -34,7 +36,8 @@ func (h *ArticleHandler) Create(ctx *gin.Context) {
 func (h *ArticleHandler) GetAll(ctx *gin.Context) {
 	articles, err := h.articleSvc.GetArticles(ctx.Request.Context())
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("GetArticles error: %v", err)
+		genericError(ctx, http.StatusInternalServerError, "failed to fetch articles")
 		return
 	}
 
@@ -46,7 +49,8 @@ func (h *ArticleHandler) GetByID(ctx *gin.Context) {
 
 	article, err := h.articleSvc.GetArticleByID(ctx.Request.Context(), id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("GetArticleByID error: %v", err)
+		genericError(ctx, http.StatusInternalServerError, "failed to fetch article")
 		return
 	}
 	if article == nil {

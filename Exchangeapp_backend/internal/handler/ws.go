@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	ws "exchangeapp/internal/websocket"
 
@@ -12,24 +13,35 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func newUpgrader() websocket.Upgrader {
-	allowed := os.Getenv("WS_ALLOWED_ORIGINS")
-	if allowed == "" {
-		allowed = "http://localhost:5173,http://localhost:80"
-	}
-	origins := make(map[string]bool)
-	for _, o := range strings.Split(allowed, ",") {
-		origins[strings.TrimSpace(o)] = true
-	}
+var (
+	defaultUpgrader *websocket.Upgrader
+	upgraderOnce    sync.Once
+)
 
-	return websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			origin := r.Header.Get("Origin")
-			return origins[origin]
-		},
-	}
+func getDefaultUpgrader() *websocket.Upgrader {
+	upgraderOnce.Do(func() {
+		allowed := os.Getenv("CORS_ALLOWED_ORIGINS")
+		if allowed == "" {
+			allowed = os.Getenv("WS_ALLOWED_ORIGINS")
+		}
+		if allowed == "" {
+			allowed = "http://localhost:5173,http://localhost:80"
+		}
+		origins := make(map[string]bool)
+		for _, o := range strings.Split(allowed, ",") {
+			origins[strings.TrimSpace(o)] = true
+		}
+
+		defaultUpgrader = &websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+			CheckOrigin: func(r *http.Request) bool {
+				origin := r.Header.Get("Origin")
+				return origins[origin]
+			},
+		}
+	})
+	return defaultUpgrader
 }
 
 type WSHandler struct {
@@ -41,8 +53,13 @@ func NewWSHandler(hub *ws.Hub) *WSHandler {
 }
 
 func (h *WSHandler) HandleWebSocket(c *gin.Context) {
-	upgrader := newUpgrader()
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	// Limit concurrent WebSocket connections
+	if h.hub.ClientCount() >= 1000 {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "too many connections"})
+		return
+	}
+
+	conn, err := getDefaultUpgrader().Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
 		return

@@ -10,9 +10,9 @@ import (
 )
 
 type AlertService struct {
-	alertRepo      repository.AlertRepository
-	notifRepo      repository.NotificationRepository
-	hub            *ws.Hub
+	alertRepo repository.AlertRepository
+	notifRepo repository.NotificationRepository
+	hub       *ws.Hub
 }
 
 func NewAlertService(
@@ -50,25 +50,26 @@ func (s *AlertService) GetUserAlerts(userID uint) ([]model.RateAlert, error) {
 }
 
 func (s *AlertService) DeleteAlert(id uint, userID uint) error {
-	if err := s.alertRepo.Delete(id, userID); err != nil {
+	deleted, err := s.alertRepo.Delete(id, userID)
+	if err != nil {
 		return fmt.Errorf("alertRepo.Delete: %w", err)
+	}
+	if !deleted {
+		return fmt.Errorf("alert not found")
 	}
 	return nil
 }
 
-// CheckAlerts checks all untriggered alerts against current rates
+// CheckAlerts checks untriggered alerts for a specific currency pair
 func (s *AlertService) CheckAlerts(from, to string, currentRate float64) {
-	alerts, err := s.alertRepo.FindUntriggered()
+	// Filter by pair in SQL instead of loading all alerts
+	alerts, err := s.alertRepo.FindUntriggeredByPair(from, to)
 	if err != nil {
 		log.Printf("AlertService: failed to fetch untriggered alerts: %v", err)
 		return
 	}
 
 	for _, alert := range alerts {
-		if alert.FromCurrency != from || alert.ToCurrency != to {
-			continue
-		}
-
 		triggered := false
 		if alert.Direction == "above" && currentRate >= alert.TargetRate {
 			triggered = true
@@ -107,7 +108,6 @@ func (s *AlertService) CheckAlerts(from, to string, currentRate float64) {
 					FromCurrency: from,
 					ToCurrency:   to,
 					Rate:         currentRate,
-					Timestamp:    "",
 				})
 			}
 		}

@@ -25,20 +25,23 @@ func (r *FollowRepo) Create(follow *model.Follow) error {
 	return nil
 }
 
-func (r *FollowRepo) Delete(followerID, followeeID uint) error {
+func (r *FollowRepo) Delete(followerID, followeeID uint) (bool, error) {
 	if r.Err != nil {
-		return r.Err
+		return false, r.Err
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	var result []model.Follow
+	found := false
 	for _, f := range r.follows {
-		if !(f.FollowerID == followerID && f.FolloweeID == followeeID) {
+		if f.FollowerID == followerID && f.FolloweeID == followeeID {
+			found = true
+		} else {
 			result = append(result, f)
 		}
 	}
 	r.follows = result
-	return nil
+	return found, nil
 }
 
 func (r *FollowRepo) Exists(followerID, followeeID uint) (bool, error) {

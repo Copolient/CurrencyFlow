@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -122,7 +123,7 @@ func TestCheckAlerts_AboveTriggered(t *testing.T) {
 	}
 
 	// Notification should be created
-	notifs, _ := notifRepo.FindByUserID(1)
+	notifs, _ := notifRepo.FindByUserID(context.Background(), 1)
 	if len(notifs) != 1 {
 		t.Fatalf("expected 1 notification, got %d", len(notifs))
 	}

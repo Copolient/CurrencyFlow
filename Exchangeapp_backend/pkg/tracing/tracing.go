@@ -2,6 +2,8 @@ package tracing
 
 import (
 	"context"
+	"os"
+	"strconv"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -35,10 +37,18 @@ func Init(serviceName, otlpEndpoint string) (func(context.Context) error, error)
 		return nil, err
 	}
 
+	// Configurable sampling rate via OTEL_TRACE_SAMPLE_RATE (default 10%)
+	sampleRate := 0.1
+	if v := os.Getenv("OTEL_TRACE_SAMPLE_RATE"); v != "" {
+		if r, err := strconv.ParseFloat(v, 64); err == nil && r >= 0 && r <= 1 {
+			sampleRate = r
+		}
+	}
+
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(0.1))),
+		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(sampleRate))),
 	)
 
 	otel.SetTracerProvider(tp)

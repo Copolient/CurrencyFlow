@@ -2,6 +2,7 @@ package handler
 
 import (
 	"exchangeapp/internal/service"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -30,7 +31,8 @@ func (h *AIAnalystHandler) Analyze(c *gin.Context) {
 
 	result, err := h.aiSvc.Analyze(c.Request.Context(), req.From, req.To, req.Question)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("AIAnalyze error: %v", err)
+		genericError(c, http.StatusInternalServerError, "analysis failed")
 		return
 	}
 
