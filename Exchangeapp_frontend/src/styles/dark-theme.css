@@ -1,0 +1,497 @@
+/* ═══════════════════════════════════════════════════
+   CurrencyFlow — Dark OLED Luxury Theme
+   ═══════════════════════════════════════════════════ */
+
+/* Google Fonts loaded in index.html */
+
+:root {
+  /* ── Brand Colors ── */
+  --cf-black: #000000;
+  --cf-bg: #050505;
+  --cf-surface: #0f0f0f;
+  --cf-surface-hover: #171717;
+  --cf-border: rgba(255, 255, 255, 0.06);
+  --cf-border-hover: rgba(255, 255, 255, 0.12);
+  --cf-text: #fafafa;
+  --cf-text-secondary: #a1a1aa;
+  --cf-text-muted: #52525b;
+  --cf-accent: #10b981;
+  --cf-accent-hover: #34d399;
+  --cf-accent-glow: rgba(16, 185, 129, 0.15);
+  --cf-accent-subtle: rgba(16, 185, 129, 0.08);
+  --cf-indigo: #6366f1;
+  --cf-amber: #f59e0b;
+  --cf-rose: #f43f5e;
+  --cf-red: #ef4444;
+  --cf-green: #22c55e;
+
+  /* ── Glass Effect ── */
+  --cf-glass-bg: rgba(255, 255, 255, 0.03);
+  --cf-glass-border: rgba(255, 255, 255, 0.08);
+  --cf-glass-blur: 20px;
+
+  /* ── Typography ── */
+  --cf-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* ── Spacing ── */
+  --cf-radius: 12px;
+  --cf-radius-lg: 16px;
+  --cf-radius-xl: 24px;
+
+  /* ── Shadows ── */
+  --cf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --cf-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --cf-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --cf-shadow-glow: 0 0 20px var(--cf-accent-glow);
+
+  /* ── Element Plus Dark Override ── */
+  --el-bg-color: var(--cf-surface);
+  --el-bg-color-overlay: var(--cf-surface);
+  --el-bg-color-page: var(--cf-bg);
+  --el-text-color-primary: var(--cf-text);
+  --el-text-color-regular: var(--cf-text-secondary);
+  --el-text-color-secondary: var(--cf-text-muted);
+  --el-text-color-placeholder: var(--cf-text-muted);
+  --el-border-color: var(--cf-border);
+  --el-border-color-light: var(--cf-border);
+  --el-border-color-lighter: var(--cf-border);
+  --el-color-primary: var(--cf-accent);
+  --el-color-primary-light-3: rgba(16, 185, 129, 0.3);
+  --el-color-primary-light-5: rgba(16, 185, 129, 0.15);
+  --el-color-primary-light-7: rgba(16, 185, 129, 0.1);
+  --el-color-primary-light-9: rgba(16, 185, 129, 0.05);
+  --el-color-primary-dark-2: #0d9668;
+  --el-color-success: var(--cf-green);
+  --el-color-warning: var(--cf-amber);
+  --el-color-danger: var(--cf-rose);
+  --el-color-error: var(--cf-rose);
+  --el-color-info: var(--cf-text-muted);
+  --el-fill-color-blank: var(--cf-surface);
+  --el-fill-color: var(--cf-surface-hover);
+  --el-fill-color-light: var(--cf-surface-hover);
+  --el-fill-color-lighter: var(--cf-surface);
+  --el-mask-color: rgba(0, 0, 0, 0.7);
+  --el-dialog-bg-color: var(--cf-surface);
+  --el-table-header-bg-color: var(--cf-surface);
+  --el-table-tr-bg-color: var(--cf-bg);
+  --el-table-row-hover-bg-color: var(--cf-surface-hover);
+  --el-menu-bg-color: transparent;
+  --el-menu-hover-bg-color: var(--cf-surface-hover);
+  --el-menu-text-color: var(--cf-text-secondary);
+  --el-menu-active-color: var(--cf-accent);
+  --el-menu-item-font-size: 14px;
+  --el-card-bg-color: var(--cf-surface);
+  --el-empty-fill-color: var(--cf-text-muted);
+}
+
+/* ── Global Reset & Typography ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--cf-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background: var(--cf-bg);
+  color: var(--cf-text);
+  font-family: var(--cf-font);
+  overflow-x: hidden;
+}
+
+/* ── Selection ── */
+::selection {
+  background: var(--cf-accent);
+  color: var(--cf-black);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cf-text-muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cf-text-secondary);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cf-text-muted) transparent;
+}
+
+/* ── Focus Ring ── */
+:focus-visible {
+  outline: 2px solid var(--cf-accent);
+  outline-offset: 2px;
+}
+
+/* ── Links ── */
+a {
+  color: var(--cf-accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--cf-accent-hover);
+}
+
+/* ── Glass Card Utility ── */
+.cf-glass {
+  background: var(--cf-glass-bg);
+  backdrop-filter: blur(var(--cf-glass-blur));
+  -webkit-backdrop-filter: blur(var(--cf-glass-blur));
+  border: 1px solid var(--cf-glass-border);
+  border-radius: var(--cf-radius);
+}
+
+.cf-glass-hover {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.cf-glass-hover:hover {
+  border-color: var(--cf-border-hover);
+  box-shadow: var(--cf-shadow-glow);
+  transform: translateY(-2px);
+}
+
+/* ── Fade-in Animation ── */
+@keyframes cf-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cf-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cf-glow-pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes cf-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.cf-animate-in {
+  animation: cf-fade-in 0.5s ease-out both;
+}
+
+.cf-animate-in-up {
+  animation: cf-fade-in-up 0.6s ease-out both;
+}
+
+/* Stagger delays */
+.cf-delay-1 { animation-delay: 0.1s; }
+.cf-delay-2 { animation-delay: 0.2s; }
+.cf-delay-3 { animation-delay: 0.3s; }
+.cf-delay-4 { animation-delay: 0.4s; }
+.cf-delay-5 { animation-delay: 0.5s; }
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Element Plus Component Overrides ── */
+
+/* Cards — remove default border, add glass effect */
+.el-card {
+  background: var(--cf-glass-bg) !important;
+  border: 1px solid var(--cf-glass-border) !important;
+  border-radius: var(--cf-radius) !important;
+  color: var(--cf-text) !important;
+  backdrop-filter: blur(var(--cf-glass-blur));
+  -webkit-backdrop-filter: blur(var(--cf-glass-blur));
+}
+
+.el-card__header {
+  border-bottom: 1px solid var(--cf-border) !important;
+  color: var(--cf-text) !important;
+  padding: 16px 20px !important;
+}
+
+.el-card__body {
+  padding: 20px !important;
+}
+
+/* Buttons — emerald primary */
+.el-button--primary {
+  --el-button-bg-color: var(--cf-accent) !important;
+  --el-button-border-color: var(--cf-accent) !important;
+  --el-button-hover-bg-color: var(--cf-accent-hover) !important;
+  --el-button-hover-border-color: var(--cf-accent-hover) !important;
+  --el-button-text-color: #fff !important;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.el-button--default {
+  --el-button-bg-color: var(--cf-surface-hover) !important;
+  --el-button-border-color: var(--cf-border) !important;
+  --el-button-hover-bg-color: var(--cf-surface) !important;
+  --el-button-hover-border-color: var(--cf-border-hover) !important;
+  --el-button-text-color: var(--cf-text-secondary) !important;
+  --el-button-hover-text-color: var(--cf-text) !important;
+}
+
+.el-button--danger {
+  --el-button-bg-color: var(--cf-rose) !important;
+  --el-button-border-color: var(--cf-rose) !important;
+}
+
+/* Input fields */
+.el-input__wrapper,
+.el-textarea__inner {
+  background: var(--cf-surface) !important;
+  border: 1px solid var(--cf-border) !important;
+  box-shadow: none !important;
+  border-radius: 8px !important;
+  color: var(--cf-text) !important;
+  transition: border-color 0.2s ease;
+}
+
+.el-input__wrapper:hover,
+.el-textarea__inner:hover {
+  border-color: var(--cf-border-hover) !important;
+}
+
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus {
+  border-color: var(--cf-accent) !important;
+  box-shadow: 0 0 0 3px var(--cf-accent-glow) !important;
+}
+
+.el-input__inner {
+  color: var(--cf-text) !important;
+}
+
+.el-input__inner::placeholder {
+  color: var(--cf-text-muted) !important;
+}
+
+/* Select dropdown */
+.el-select-dropdown {
+  background: var(--cf-surface) !important;
+  border: 1px solid var(--cf-border) !important;
+}
+
+.el-select-dropdown__item {
+  color: var(--cf-text-secondary) !important;
+}
+
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover {
+  background: var(--cf-surface-hover) !important;
+  color: var(--cf-text) !important;
+}
+
+.el-select-dropdown__item.selected {
+  color: var(--cf-accent) !important;
+  font-weight: 600;
+}
+
+/* Tags */
+.el-tag {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.el-tag--success {
+  --el-tag-bg-color: rgba(34, 197, 94, 0.12) !important;
+  --el-tag-text-color: #4ade80 !important;
+  --el-tag-border-color: rgba(34, 197, 94, 0.2) !important;
+}
+
+.el-tag--danger {
+  --el-tag-bg-color: rgba(244, 63, 94, 0.12) !important;
+  --el-tag-text-color: #fb7185 !important;
+  --el-tag-border-color: rgba(244, 63, 94, 0.2) !important;
+}
+
+.el-tag--warning {
+  --el-tag-bg-color: rgba(245, 158, 11, 0.12) !important;
+  --el-tag-text-color: #fbbf24 !important;
+  --el-tag-border-color: rgba(245, 158, 11, 0.2) !important;
+}
+
+.el-tag--info {
+  --el-tag-bg-color: rgba(255, 255, 255, 0.06) !important;
+  --el-tag-text-color: var(--cf-text-secondary) !important;
+  --el-tag-border-color: var(--cf-border) !important;
+}
+
+/* Table */
+.el-table {
+  --el-table-bg-color: transparent !important;
+  --el-table-tr-bg-color: transparent !important;
+  --el-table-header-bg-color: rgba(255, 255, 255, 0.02) !important;
+  --el-table-row-hover-bg-color: var(--cf-surface-hover) !important;
+  --el-table-border-color: var(--cf-border) !important;
+  --el-table-text-color: var(--cf-text-secondary) !important;
+  --el-table-header-text-color: var(--cf-text) !important;
+}
+
+/* Dialog */
+.el-dialog {
+  background: var(--cf-surface) !important;
+  border: 1px solid var(--cf-border) !important;
+  border-radius: var(--cf-radius-lg) !important;
+}
+
+.el-dialog__title {
+  color: var(--cf-text) !important;
+}
+
+.el-dialog__headerbtn .el-dialog__close {
+  color: var(--cf-text-secondary) !important;
+}
+
+/* Menu (navigation) */
+.el-menu {
+  background: transparent !important;
+  border: none !important;
+}
+
+.el-menu--horizontal {
+  border: none !important;
+}
+
+.el-menu-item {
+  color: var(--cf-text-secondary) !important;
+  border-bottom: none !important;
+  font-weight: 500;
+  font-size: 14px;
+  transition: color 0.2s ease;
+}
+
+.el-menu-item:hover {
+  color: var(--cf-text) !important;
+  background: transparent !important;
+}
+
+.el-menu-item.is-active {
+  color: var(--cf-accent) !important;
+}
+
+/* Sub-menu */
+.el-sub-menu__title {
+  color: var(--cf-text-secondary) !important;
+}
+
+.el-sub-menu__title:hover {
+  color: var(--cf-text) !important;
+  background: transparent !important;
+}
+
+/* Radio buttons — segmented control style */
+.el-radio-button__inner {
+  background: var(--cf-surface) !important;
+  border-color: var(--cf-border) !important;
+  color: var(--cf-text-secondary) !important;
+  box-shadow: none !important;
+}
+
+.el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background: var(--cf-accent) !important;
+  border-color: var(--cf-accent) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+/* Empty state */
+.el-empty__description p {
+  color: var(--cf-text-muted) !important;
+}
+
+/* Skeleton */
+.el-skeleton__item {
+  background: var(--cf-surface-hover) !important;
+}
+
+/* Divider */
+.el-divider {
+  border-color: var(--cf-border) !important;
+}
+
+/* Loading */
+.el-loading-mask {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Message / Notification */
+.el-message {
+  background: var(--cf-surface) !important;
+  border: 1px solid var(--cf-border) !important;
+  border-radius: var(--cf-radius) !important;
+}
+
+/* Alert */
+.el-alert {
+  border-radius: 8px;
+}
+
+/* Result */
+.el-result__title p {
+  color: var(--cf-text) !important;
+}
+
+.el-result__subtitle p {
+  color: var(--cf-text-secondary) !important;
+}
+
+/* Avatar */
+.el-avatar {
+  background: var(--cf-surface-hover) !important;
+  color: var(--cf-text-secondary) !important;
+}

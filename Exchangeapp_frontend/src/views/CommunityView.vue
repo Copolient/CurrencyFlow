@@ -1,6 +1,12 @@
 <template>
-  <div class="community-container">
-    <el-card class="post-form-card" v-if="authStore.isAuthenticated">
+  <div class="community-page">
+    <div class="page-header cf-animate-in">
+      <h1 class="page-title">交易社区</h1>
+      <p class="page-desc">分享你的交易观点，关注市场动态</p>
+    </div>
+
+    <!-- Post Form -->
+    <div class="post-form cf-glass cf-animate-in cf-delay-1" v-if="authStore.isAuthenticated">
       <el-input
         v-model="newPost"
         type="textarea"
@@ -9,47 +15,59 @@
         maxlength="2000"
         show-word-limit
       />
-      <div class="post-actions">
-        <el-input v-model="newCurrency" placeholder="关联货币对（可选）" style="width: 150px" />
-        <el-button type="primary" @click="createPost" :loading="posting">发布</el-button>
+      <div class="post-form-actions">
+        <el-input v-model="newCurrency" placeholder="关联货币对（可选）" class="currency-input" />
+        <button class="post-btn" @click="createPost" :disabled="posting || !newPost.trim()">
+          <span v-if="posting" class="btn-spinner"></span>
+          <span v-else>发布</span>
+        </button>
       </div>
-    </el-card>
+    </div>
 
-    <el-card class="feed-card">
-      <template #header>
-        <div class="feed-header">
-          <el-radio-group v-model="feedType" @change="fetchPosts">
-            <el-radio-button label="latest">最新</el-radio-button>
-            <el-radio-button label="following" v-if="authStore.isAuthenticated">关注</el-radio-button>
-          </el-radio-group>
-        </div>
-      </template>
+    <!-- Feed -->
+    <div class="feed-section cf-animate-in cf-delay-2">
+      <div class="feed-tabs">
+        <button
+          class="feed-tab"
+          :class="{ active: feedType === 'latest' }"
+          @click="feedType = 'latest'; fetchPosts()"
+        >
+          最新
+        </button>
+        <button
+          v-if="authStore.isAuthenticated"
+          class="feed-tab"
+          :class="{ active: feedType === 'following' }"
+          @click="feedType = 'following'; fetchPosts()"
+        >
+          关注
+        </button>
+      </div>
 
       <div v-loading="loading">
         <div v-if="posts.length === 0" class="empty-state">
-          <el-empty description="暂无帖子" />
+          暂无帖子
         </div>
 
-        <div v-for="post in posts" :key="post.ID" class="post-item">
+        <div v-for="post in posts" :key="post.ID" class="post-card cf-glass">
           <div class="post-header">
-            <el-avatar :size="36" :src="post.avatar || undefined">
-              {{ post.username?.charAt(0)?.toUpperCase() }}
-            </el-avatar>
+            <div class="post-avatar">{{ post.username?.charAt(0)?.toUpperCase() }}</div>
             <div class="post-meta">
               <span class="post-username" @click="viewProfile(post.userId)">{{ post.username }}</span>
               <span class="post-time">{{ formatTime(post.CreatedAt) }}</span>
             </div>
-            <el-tag v-if="post.currency" size="small" class="post-currency">{{ post.currency }}</el-tag>
+            <span v-if="post.currency" class="post-currency-tag">{{ post.currency }}</span>
           </div>
-          <div class="post-content">{{ post.content }}</div>
+          <p class="post-content">{{ post.content }}</p>
           <div class="post-footer">
-            <el-button text @click="likePost(post.ID)">
-              ❤️ {{ post.likes }}
-            </el-button>
+            <button class="like-btn" @click="likePost(post.ID)">
+              <span class="like-icon">♥</span>
+              <span class="like-count">{{ post.likes }}</span>
+            </button>
           </div>
         </div>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -86,30 +104,18 @@ const fetchPosts = async () => {
       params: { type: feedType.value, pageSize: 50 },
     });
     posts.value = resp.data;
-  } catch {
-    // interceptor handles error
-  } finally {
-    loading.value = false;
-  }
+  } catch { /* */ } finally { loading.value = false; }
 };
 
 const createPost = async () => {
   if (!newPost.value.trim()) return;
-
   posting.value = true;
   try {
-    await axios.post('/posts', {
-      content: newPost.value,
-      currency: newCurrency.value,
-    });
+    await axios.post('/posts', { content: newPost.value, currency: newCurrency.value });
     newPost.value = '';
     newCurrency.value = '';
     fetchPosts();
-  } catch {
-    // interceptor handles error
-  } finally {
-    posting.value = false;
-  }
+  } catch { /* */ } finally { posting.value = false; }
 };
 
 const likePost = async (id: number) => {
@@ -117,9 +123,7 @@ const likePost = async (id: number) => {
     await axios.post(`/posts/${id}/like`);
     const post = posts.value.find((p) => p.ID === id);
     if (post) post.likes++;
-  } catch {
-    // interceptor handles error
-  }
+  } catch { /* */ }
 };
 
 const viewProfile = (userId: number) => {
@@ -131,54 +135,133 @@ const formatTime = (timestamp: string) => {
   const d = new Date(timestamp);
   const now = new Date();
   const diff = now.getTime() - d.getTime();
-
   if (diff < 60000) return '刚刚';
   if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
   return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
-onMounted(() => {
-  fetchPosts();
-});
+onMounted(() => { fetchPosts(); });
 </script>
 
 <style scoped>
-.community-container {
+.community-page {
+  padding-top: 48px;
   max-width: 640px;
-  margin: 20px auto;
-  padding: 0 20px;
+  margin: 0 auto;
 }
 
-.post-form-card {
-  margin-bottom: 16px;
-  border-radius: 8px;
+.page-header {
+  margin-bottom: 28px;
 }
 
-.post-actions {
+.page-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--cf-text);
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.page-desc {
+  font-size: 14px;
+  color: var(--cf-text-muted);
+  margin: 0;
+}
+
+/* ── Post Form ── */
+.post-form {
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.post-form-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: 12px;
+  gap: 12px;
 }
 
-.feed-card {
+.currency-input {
+  width: 180px;
+}
+
+.post-btn {
+  padding: 8px 20px;
+  background: var(--cf-accent);
+  color: var(--cf-black);
+  border: none;
   border-radius: 8px;
-}
-
-.feed-header {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--cf-font);
+  cursor: pointer;
+  transition: background 0.2s ease;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 6px;
 }
 
-.post-item {
-  padding: 16px 0;
-  border-bottom: 1px solid #ebeef5;
+.post-btn:hover:not(:disabled) {
+  background: var(--cf-accent-hover);
 }
 
-.post-item:last-child {
-  border-bottom: none;
+.post-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: var(--cf-black);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Feed Tabs ── */
+.feed-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: var(--cf-surface);
+  border-radius: 8px;
+  padding: 3px;
+  width: fit-content;
+}
+
+.feed-tab {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--cf-font);
+  color: var(--cf-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.feed-tab:hover {
+  color: var(--cf-text-secondary);
+}
+
+.feed-tab.active {
+  color: var(--cf-black);
+  background: var(--cf-accent);
+}
+
+/* ── Post Cards ── */
+.post-card {
+  padding: 20px;
+  margin-bottom: 12px;
 }
 
 .post-header {
@@ -188,44 +271,113 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
+.post-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cf-surface-hover);
+  border: 1px solid var(--cf-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cf-accent);
+  flex-shrink: 0;
+}
+
 .post-meta {
   flex: 1;
+  min-width: 0;
 }
 
 .post-username {
+  display: block;
+  font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--cf-text);
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
 .post-username:hover {
-  color: #409eff;
+  color: var(--cf-accent);
 }
 
 .post-time {
   display: block;
-  font-size: 12px;
-  color: #909399;
+  font-size: 11px;
+  color: var(--cf-text-muted);
 }
 
-.post-currency {
-  margin-left: auto;
+.post-currency-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--cf-accent);
+  background: var(--cf-accent-subtle);
+  padding: 3px 10px;
+  border-radius: 6px;
 }
 
 .post-content {
   font-size: 14px;
-  color: #303133;
-  line-height: 1.6;
-  margin-bottom: 12px;
+  line-height: 1.7;
+  color: var(--cf-text-secondary);
+  margin: 0;
   white-space: pre-wrap;
 }
 
 .post-footer {
-  display: flex;
-  gap: 16px;
+  margin-top: 12px;
+}
+
+.like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--cf-font);
+  transition: color 0.2s ease;
+}
+
+.like-icon {
+  font-size: 14px;
+  color: var(--cf-text-muted);
+  transition: color 0.2s ease;
+}
+
+.like-btn:hover .like-icon {
+  color: var(--cf-rose);
+}
+
+.like-count {
+  font-size: 12px;
+  color: var(--cf-text-muted);
 }
 
 .empty-state {
-  padding: 40px 0;
+  text-align: center;
+  padding: 60px 0;
+  font-size: 14px;
+  color: var(--cf-text-muted);
+}
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+  .community-page {
+    padding-top: 24px;
+  }
+
+  .post-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .currency-input {
+    width: 100%;
+  }
 }
 </style>

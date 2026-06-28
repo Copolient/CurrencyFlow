@@ -1,33 +1,30 @@
 <template>
-  <div class="detail-container">
+  <div class="detail-page">
     <el-skeleton :loading="loading" animated :rows="6">
       <template #default>
-        <el-card v-if="article" class="article-detail" shadow="never">
+        <div v-if="article" class="article-detail cf-glass cf-animate-in">
+          <button class="back-btn" @click="router.back()">← 返回列表</button>
           <h1 class="article-title">{{ article.Title }}</h1>
-          <el-divider />
+          <div class="article-divider"></div>
           <div class="article-content">{{ article.Content }}</div>
 
           <div class="like-section">
-            <el-button type="primary" :icon="StarFilled" @click="likeArticle" :loading="likeLoading">
-              点赞
-            </el-button>
+            <button class="like-btn" @click="likeArticle" :disabled="likeLoading">
+              <span class="like-icon">♥</span>
+              <span>点赞</span>
+            </button>
             <span class="like-count">{{ likes }} 人点赞</span>
           </div>
-        </el-card>
-        <el-empty v-else description="文章不存在" />
+        </div>
+        <div v-else class="empty-state">文章不存在</div>
       </template>
     </el-skeleton>
-
-    <el-button text @click="router.back()" style="margin-top: 16px">
-      ← 返回列表
-    </el-button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { StarFilled } from '@element-plus/icons-vue';
 import axios from '../axios';
 import type { Article, LikeResponse } from '../types/Article';
 
@@ -45,20 +42,14 @@ const fetchArticle = async () => {
   try {
     const response = await axios.get<Article>(`/articles/${id}`);
     article.value = response.data;
-  } catch {
-    // interceptor 已处理
-  } finally {
-    loading.value = false;
-  }
+  } catch { /* */ } finally { loading.value = false; }
 };
 
 const fetchLike = async () => {
   try {
     const res = await axios.get<LikeResponse>(`/articles/${id}/like`);
     likes.value = Number(res.data.likes) || 0;
-  } catch {
-    // 非关键错误，静默处理
-  }
+  } catch { /* */ }
 };
 
 const likeArticle = async () => {
@@ -66,54 +57,123 @@ const likeArticle = async () => {
   try {
     await axios.post(`/articles/${id}/like`);
     await fetchLike();
-  } catch {
-    // interceptor 已处理
-  } finally {
-    likeLoading.value = false;
-  }
+  } catch { /* */ } finally { likeLoading.value = false; }
 };
 
-onMounted(() => {
-  fetchArticle();
-  fetchLike();
-});
+onMounted(() => { fetchArticle(); fetchLike(); });
 </script>
 
 <style scoped>
-.detail-container {
-  max-width: 800px;
-  margin: 20px auto;
-  padding: 0 20px;
+.detail-page {
+  padding-top: 48px;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .article-detail {
-  border-radius: 8px;
+  padding: 32px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--cf-font);
+  color: var(--cf-accent);
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 24px;
+  transition: color 0.2s ease;
+}
+
+.back-btn:hover {
+  color: var(--cf-accent-hover);
 }
 
 .article-title {
   font-size: 28px;
-  color: #303133;
-  margin-bottom: 0;
+  font-weight: 800;
+  color: var(--cf-text);
+  margin: 0 0 20px;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.article-divider {
+  height: 1px;
+  background: var(--cf-border);
+  margin-bottom: 24px;
 }
 
 .article-content {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.8;
-  color: #606266;
+  color: var(--cf-text-secondary);
   white-space: pre-wrap;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .like-section {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid #ebeef5;
+  padding-top: 20px;
+  border-top: 1px solid var(--cf-border);
+}
+
+.like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: var(--cf-accent);
+  color: var(--cf-black);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--cf-font);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.like-btn:hover:not(:disabled) {
+  background: var(--cf-accent-hover);
+}
+
+.like-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.like-icon {
+  font-size: 14px;
 }
 
 .like-count {
-  color: #909399;
+  font-size: 13px;
+  color: var(--cf-text-muted);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 0;
   font-size: 14px;
+  color: var(--cf-text-muted);
+}
+
+@media (max-width: 767px) {
+  .detail-page {
+    padding-top: 24px;
+  }
+
+  .article-detail {
+    padding: 20px;
+  }
+
+  .article-title {
+    font-size: 22px;
+  }
 }
 </style>
