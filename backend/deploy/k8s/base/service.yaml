@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: currencyflow
+  namespace: currencyflow
+  labels:
+    app.kubernetes.io/name: currencyflow
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: currencyflow

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: currencyflow
+  labels:
+    app.kubernetes.io/name: currencyflow
+    istio-injection: enabled
