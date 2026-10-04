@@ -15,7 +15,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: test
-          MYSQL_DATABASE: exchangeapp_test
+          MYSQL_DATABASE: currencyflow_test
         ports:
           - 3306:3306
         options: >-
@@ -41,22 +41,26 @@ jobs:
         with:
           go-version: "1.25"
           cache: true
-          cache-dependency-path: Exchangeapp_backend/go.sum
+          cache-dependency-path: backend/go.sum
 
       - name: Build
-        working-directory: Exchangeapp_backend
+        working-directory: backend
         run: go build ./...
 
       - name: Test
-        working-directory: Exchangeapp_backend
+        working-directory: backend
         env:
           JWT_SECRET: test-secret-key-for-ci
-          DB_DSN: "root:test@tcp(127.0.0.1:3306)/exchangeapp_test?charset=utf8mb4&parseTime=True&loc=Local"
+          DB_DSN: "root:test@tcp(127.0.0.1:3306)/currencyflow_test?charset=utf8mb4&parseTime=True&loc=Local"
           REDIS_ADDR: "localhost:6379"
         run: go test -race ./...
 
+      - name: Format check
+        working-directory: backend
+        run: test -z "$(gofmt -l .)"
+
       - name: Vet
-        working-directory: Exchangeapp_backend
+        working-directory: backend
         run: go vet ./...
 
   frontend:
@@ -71,20 +75,24 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: Exchangeapp_frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        working-directory: Exchangeapp_frontend
+        working-directory: frontend
         run: npm ci
 
       - name: Type check
-        working-directory: Exchangeapp_frontend
+        working-directory: frontend
         run: npx vue-tsc --noEmit
 
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
       - name: Test
-        working-directory: Exchangeapp_frontend
+        working-directory: frontend
         run: npm test
 
       - name: Build
-        working-directory: Exchangeapp_frontend
+        working-directory: frontend
         run: npm run build

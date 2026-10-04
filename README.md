@@ -1,4 +1,4 @@
-# ExchangeApp
+# CurrencyFlow
 
 货币汇率查询与财经资讯平台，采用前后端分离的云原生架构。
 
@@ -32,8 +32,8 @@
 ## 📁 项目结构
 
 ```
-exchangeapp/
-├── Exchangeapp_backend/
+currencyflow/
+├── backend/
 │   ├── cmd/server/main.go
 │   ├── internal/
 │   │   ├── handler/           # HTTP 处理层
@@ -49,7 +49,7 @@ exchangeapp/
 │   ├── deploy/                # K8s 部署配置
 │   └── Dockerfile
 │
-├── Exchangeapp_frontend/
+├── frontend/
 │   ├── src/
 │   │   ├── views/             # 页面组件
 │   │   ├── components/        # 通用组件
@@ -74,7 +74,7 @@ exchangeapp/
 
 | 工具 | 最低版本 | 说明 |
 |------|---------|------|
-| Go | 1.21+ | 后端语言 |
+| Go | 1.25+ | 后端语言 |
 | Node.js | 18+ | 前端构建 |
 | MySQL | 8.0+ | 主数据库 |
 | Redis | 7.0+ | 缓存 + 实时数据 |
@@ -102,25 +102,28 @@ redis-cli ping
 #### 2. 克隆项目
 
 ```bash
-git clone https://github.com/Copolient/exchangeApp.git
-cd exchangeApp
+git clone https://github.com/Copolient/CurrencyFlow.git
+cd CurrencyFlow
 ```
 
 #### 3. 后端启动
 
 ```bash
-cd Exchangeapp_backend
+cd backend
 
 # 设置环境变量
-export JWT_SECRET="your-secret-key-here"
-export DB_DSN="root:@tcp(127.0.0.1:3306)/exchangeapp?charset=utf8mb4&parseTime=True&loc=Local"
+export JWT_SECRET="$(openssl rand -base64 48)"
+export DB_DSN="root:@tcp(127.0.0.1:3306)/currencyflow?charset=utf8mb4&parseTime=True&loc=Local"
 export REDIS_ADDR="localhost:6379"
 
 # 首次运行：创建数据库
-mysql -u root -e "CREATE DATABASE IF NOT EXISTS exchangeapp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS currencyflow CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # 数据库迁移
 make migrate
+
+# 写入演示数据（用户 / 汇率 / 文章 / 帖子等，仅首次需要）
+go run ./cmd/seed
 
 # 启动服务
 make run
@@ -131,7 +134,7 @@ make run
 #### 4. 前端启动
 
 ```bash
-cd Exchangeapp_frontend
+cd frontend
 
 # 安装依赖
 npm install
@@ -183,30 +186,33 @@ net start Redis
 #### 3. 克隆项目
 
 ```powershell
-git clone https://github.com/Copolient/exchangeApp.git
-cd exchangeApp
+git clone https://github.com/Copolient/CurrencyFlow.git
+cd CurrencyFlow
 ```
 
 #### 4. 后端启动
 
 ```powershell
-cd Exchangeapp_backend
+cd backend
 
 # 设置环境变量（PowerShell）
-$env:JWT_SECRET = "your-secret-key-here"
-$env:DB_DSN = "root:@tcp(127.0.0.1:3306)/exchangeapp?charset=utf8mb4&parseTime=True&loc=Local"
+$env:JWT_SECRET = (openssl rand -base64 48)
+$env:DB_DSN = "root:@tcp(127.0.0.1:3306)/currencyflow?charset=utf8mb4&parseTime=True&loc=Local"
 $env:REDIS_ADDR = "localhost:6379"
 
 # 或者使用 CMD
-# set JWT_SECRET=your-secret-key-here
-# set DB_DSN=root:@tcp(127.0.0.1:3306)/exchangeapp?charset=utf8mb4&parseTime=True&loc=Local
+# set JWT_SECRET=<32+ char random string>
+# set DB_DSN=root:@tcp(127.0.0.1:3306)/currencyflow?charset=utf8mb4&parseTime=True&loc=Local
 # set REDIS_ADDR=localhost:6379
 
 # 创建数据库
-mysql -u root -e "CREATE DATABASE IF NOT EXISTS exchangeapp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS currencyflow CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # 数据库迁移
 go run cmd/server/main.go --migrate
+
+# 写入演示数据
+go run cmd/seed/main.go
 
 # 启动服务
 go run cmd/server/main.go
@@ -215,7 +221,7 @@ go run cmd/server/main.go
 #### 5. 前端启动
 
 ```powershell
-cd Exchangeapp_frontend
+cd frontend
 
 # 安装依赖
 npm install
@@ -265,28 +271,31 @@ sudo apt install -y git
 sudo mysql_secure_installation
 
 # 创建数据库
-sudo mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS exchangeapp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS currencyflow CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
 #### 3. 克隆项目
 
 ```bash
-git clone https://github.com/Copolient/exchangeApp.git
-cd exchangeApp
+git clone https://github.com/Copolient/CurrencyFlow.git
+cd CurrencyFlow
 ```
 
 #### 4. 后端启动
 
 ```bash
-cd Exchangeapp_backend
+cd backend
 
 # 设置环境变量
-export JWT_SECRET="your-secret-key-here"
-export DB_DSN="root:your-password@tcp(127.0.0.1:3306)/exchangeapp?charset=utf8mb4&parseTime=True&loc=Local"
+export JWT_SECRET="$(openssl rand -base64 48)"
+export DB_DSN="root:your-password@tcp(127.0.0.1:3306)/currencyflow?charset=utf8mb4&parseTime=True&loc=Local"
 export REDIS_ADDR="localhost:6379"
 
 # 数据库迁移
 make migrate
+
+# 写入演示数据（用户 / 汇率 / 文章 / 帖子等，仅首次需要）
+go run ./cmd/seed
 
 # 启动服务
 make run
@@ -295,7 +304,7 @@ make run
 #### 5. 前端启动
 
 ```bash
-cd Exchangeapp_frontend
+cd frontend
 
 # 安装依赖
 npm install
@@ -317,14 +326,18 @@ npm run dev
 # Linux: https://docs.docker.com/desktop/install/linux-install/
 
 # 克隆项目
-git clone https://github.com/Copolient/exchangeApp.git
-cd exchangeApp
+git clone https://github.com/Copolient/CurrencyFlow.git
+cd CurrencyFlow
+
+# 生成并导出 JWT 密钥（至少 32 字符）
+export JWT_SECRET="$(openssl rand -base64 48)"
 
 # 一键启动所有服务
-docker-compose up --build
+docker compose up --build
 
-# 首次运行：执行数据库迁移（新终端）
-docker-compose exec backend ./server --migrate
+# 首次运行：执行数据库迁移并写入演示数据（新终端）
+docker compose exec backend ./currencyflow --migrate
+docker compose exec backend ./currencyflow-seed
 ```
 
 访问：
@@ -339,7 +352,7 @@ docker-compose exec backend ./server --migrate
 ### 后端测试
 
 ```bash
-cd Exchangeapp_backend
+cd backend
 
 # 运行所有测试
 make test
@@ -354,7 +367,7 @@ make lint
 ### 前端测试
 
 ```bash
-cd Exchangeapp_frontend
+cd frontend
 
 # 运行测试
 npm test
@@ -419,17 +432,19 @@ npm run test:coverage
 
 | 变量 | 必填 | 说明 | 默认值 |
 |------|------|------|--------|
-| `JWT_SECRET` | ✅ | JWT 签名密钥 | — |
+| `JWT_SECRET` | ✅ | JWT 签名密钥，至少 32 字符；用 `openssl rand -base64 48` 生成 | — |
 | `DB_DSN` | ✅ | MySQL 连接串 | — |
 | `REDIS_ADDR` | ❌ | Redis 地址 | `localhost:6379` |
 | `APP_PORT` | ❌ | 服务端口 | `:3000` |
+| `CORS_ALLOWED_ORIGINS` | ❌ | 允许的前端 Origin，逗号分隔 | `http://localhost:5173,http://localhost,http://localhost:80` |
+| `TRUSTED_PROXIES` | ❌ | 可信反向代理 CIDR，逗号分隔；设为 `none` 可关闭 X-Forwarded-* 信任 | loopback + 私网网段 |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | ❌ | OTel Collector | — |
 
 ### 前端
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `VITE_API_BASE_URL` | API 基础路径 | `/api` |
+| `VITE_API_BASE_URL` | API 基础路径 | `/api/v1` |
 
 ---
 
@@ -444,7 +459,7 @@ npm run test:coverage
 ### 构建 PWA 版本
 
 ```bash
-cd Exchangeapp_frontend
+cd frontend
 
 # 构建生产版本
 npm run build
@@ -464,7 +479,7 @@ npm run preview
 | `make build` | 编译后端二进制 |
 | `make test` | 运行测试（-race -coverprofile） |
 | `make test-cover` | 生成覆盖率报告 |
-| `make lint` | golangci-lint 检查 |
+| `make lint` | gofmt + go vet 检查 |
 | `make run` | 启动服务 |
 | `make migrate` | 执行数据库迁移 |
 | `make docker-build` | 构建 Docker 镜像 |
@@ -485,7 +500,7 @@ brew services list | grep mysql
 brew services start mysql
 
 # 如果使用 socket 连接
-export DB_DSN="root:@unix(/tmp/mysql.sock)/exchangeapp?charset=utf8mb4&parseTime=True&loc=Local"
+export DB_DSN="root:@unix(/tmp/mysql.sock)/currencyflow?charset=utf8mb4&parseTime=True&loc=Local"
 ```
 
 ### Windows: Go 命令找不到

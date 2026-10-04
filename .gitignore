@@ -3,12 +3,13 @@ node_modules/
 
 # Build output
 dist/
-Exchangeapp_frontend/src/**/*.js
+frontend/src/**/*.js
+frontend/src/**/*.js.map
 *.exe
-server
 
 # Environment
 .env.local
+/.env
 
 # IDE
 .idea/
@@ -21,7 +22,10 @@ server
 Thumbs.db
 
 # Go
-Exchangeapp_backend/server
+backend/currencyflow
+backend/currencyflow-seed
+backend/bin/
 
 # Coverage
+coverage/
 coverage.out

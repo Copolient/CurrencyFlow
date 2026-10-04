@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: currencyflow-config
+  namespace: currencyflow
+  labels:
+    app.kubernetes.io/name: currencyflow
+data:
+  redis-addr: "redis.cache.svc.cluster.local:6379"
+  cors-allowed-origins: "https://currencyflow.example.com,http://localhost:5173,http://localhost"
+  trusted-proxies: "127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
